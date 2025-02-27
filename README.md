@@ -1,70 +1,51 @@
-# Getting Started with Create React App
+# Faltaí
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+![Faltaí Logo](public/apple-touch-icon.png)
 
-## Available Scripts
+Bem-vindo ao **Faltaí**, um aplicativo web simples e prático para controlar suas faltas da faculdade. Com ele, você pode gerenciar suas matérias, registrar faltas e visualizar tudo em um calendário interativo, seja no modo online (com Firebase) ou anônimo (salvo localmente).
 
-In the project directory, you can run:
+## Sobre o Projeto
 
-### `npm start`
+O **Faltaí** foi desenvolvido para ajudar estudantes a acompanhar suas faltas de forma intuitiva. Ele suporta:
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+- **Registro de matérias**: Adicione matérias com carga horária e peso de faltas.
+- **Controle de faltas**: Adicione ou remova faltas manualmente ou via calendário.
+- **Modo Online**: Sincronize seus dados com o Firebase para acessar de qualquer dispositivo.
+- **Modo Anônimo**: Salve localmente no `localStorage` sem precisar de login.
+- **Redefinição de Senha**: Recupere sua conta com um link enviado por email.
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+O projeto é hospedado no GitHub Pages e usa React com Firebase para autenticação e armazenamento.
 
-### `npm test`
+## Funcionalidades
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+- **Login e Registro**: Entre com email/senha, Google ou use o modo anônimo.
+- **Gerenciamento de Matérias**: Adicione, edite ou exclua matérias com facilidade.
+- **Calendário Interativo**: Veja e edite suas faltas diretamente em um calendário.
+- **Persistência de Dados**: Online (Firebase) ou offline (localStorage).
+- **Ícone Otimizado**: Adicione à tela inicial do iPhone/Android com um ícone personalizado.
 
-### `npm run build`
+## Como Usar
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+1. **Acesse o Site**:
+   - Visite [https://victorhugoguimaraes.github.io/Faltaai/](https://victorhugoguimaraes.github.io/Faltaai/).
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+2. **Faça Login ou Use Anônimo**:
+   - Escolha "Login" (email/Google), "Registre-se" ou "Conectar como Anônimo".
+   - Se esquecer a senha, clique em "Esqueci a senha" para receber um link de redefinição.
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+3. **Gerencie suas Matérias**:
+   - Clique em "Adicionar Matéria" e preencha os dados.
+   - Use os botões `+` e `-` ou o ícone de calendário para registrar faltas.
 
-### `npm run eject`
+4. **Logout**:
+   - Clique no "X" vermelho no canto superior direito para sair.
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+## Instalação Local
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+Quer rodar o Faltaí localmente? Siga os passos abaixo:
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+### Pré-requisitos
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
-
-## Learn More
-
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
-
-To learn React, check out the [React documentation](https://reactjs.org/).
-
-### Code Splitting
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
-
-### Analyzing the Bundle Size
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
-
-### Making a Progressive Web App
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
-
-### Advanced Configuration
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+- [Node.js](https://nodejs.org/) (versão 14 ou superior)
+- [Git](https://git-scm.com/)
+- Conta no [Firebase](https://firebase.google.com/) (para modo online)
