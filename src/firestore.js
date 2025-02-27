@@ -1,7 +1,6 @@
-import { db, auth } from "./firebase";
+import { db, auth } from "./services/firebase";
 import { doc, setDoc, collection, getDocs } from "firebase/firestore";
 
-// Função auxiliar para pegar o usuário logado
 async function getCurrentUser() {
   return new Promise((resolve) => {
     const unsubscribe = auth.onAuthStateChanged((user) => {
@@ -11,7 +10,6 @@ async function getCurrentUser() {
   });
 }
 
-// Função para adicionar matéria
 export async function adicionarMateria(nomeMateria) {
   const user = await getCurrentUser();
   if (!user) {
@@ -19,7 +17,7 @@ export async function adicionarMateria(nomeMateria) {
     return;
   }
 
-  const uid = user.uid; // Obtém o ID do usuário logado
+  const uid = user.uid; 
 
   try {
     await setDoc(doc(db, `users/${uid}/materias`, nomeMateria), {
@@ -32,7 +30,6 @@ export async function adicionarMateria(nomeMateria) {
   }
 }
 
-// Função para carregar as matérias do usuário logado
 export async function carregarMaterias() {
   const user = await getCurrentUser();
   if (!user) {

@@ -1,53 +1,98 @@
-import { useState } from "react";
-import { auth, db } from "../firebase";
-import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from "firebase/auth";
-import { doc, setDoc } from "firebase/firestore";
+import React, { useState } from 'react';
+import { loginWithEmail, loginWithGoogle, resetPassword } from '../services/authService';
+import RegisterModal from './RegisterModal';
+import ResetPasswordModal from './ResetPasswordModal';
 
-export default function Login({ setLogado }) {
-  const [email, setEmail] = useState("");
-  const [senha, setSenha] = useState("");
-  const [erro, setErro] = useState("");
+function Login({ setLogado, setIsOnline }) {
+  const [email, setEmail] = useState('');
+  const [senha, setSenha] = useState('');
+  const [erro, setErro] = useState('');
+  const [registerModalOpen, setRegisterModalOpen] = useState(false);
+  const [resetModalOpen, setResetModalOpen] = useState(false);
 
-  const fazerLogin = async () => {
-    try {
-      await signInWithEmailAndPassword(auth, email, senha);
+  const handleLogin = async () => {
+    const result = await loginWithEmail(email, senha);
+    if (result.success) {
       setLogado(true);
-    } catch {
-      setErro("Erro no login. Verifique email/senha.");
+      setIsOnline(true);
+      setEmail('');
+      setSenha('');
+    } else {
+      setErro(result.message);
     }
   };
 
-  const registrar = async () => {
-    try {
-      const userCredential = await createUserWithEmailAndPassword(auth, email, senha);
-      await setDoc(doc(db, "usuarios", userCredential.user.uid), { materias: [] });
+  const handleGoogleLogin = async () => {
+    const result = await loginWithGoogle();
+    if (result.success) {
       setLogado(true);
-    } catch {
-      setErro("Erro ao registrar. Email pode estar em uso.");
+      setIsOnline(true);
+    } else {
+      setErro(result.message);
     }
+  };
+
+  const handleAnonymousMode = () => {
+    setLogado(true);
+    setIsOnline(false);
   };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-blue-50">
-      <div className="p-8 bg-white rounded-xl shadow-lg w-full max-w-md">
-        <h1 className="site-title">Faltaí</h1>
-        {erro && <p className="text-red-500 mb-4 text-center">{erro}</p>}
+      <div className="p-4 sm:p-6 bg-white rounded-2xl shadow-lg w-full max-w-xs sm:max-w-sm">
+        <h1 className="text-2xl sm:text-3xl font-extrabold text-center mb-4 sm:mb-6 text-blue-600 bg-gradient-to-r from-blue-500 to-blue-700 text-transparent bg-clip-text">
+          Faltaí
+        </h1>
+        {erro && <p className="text-red-500 mb-3 sm:mb-4 text-center text-xs sm:text-sm">{erro}</p>}
         <input
-          className="input"
+          className="w-full p-2 sm:p-3 mb-3 sm:mb-4 border border-blue-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-blue-50 placeholder-gray-500 text-xs sm:text-sm"
           placeholder="Email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
         />
         <input
-          className="input"
+          className="w-full p-2 sm:p-3 mb-4 sm:mb-6 border border-blue-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-blue-50 placeholder-gray-500 text-xs sm:text-sm"
           type="password"
           placeholder="Senha"
           value={senha}
           onChange={(e) => setSenha(e.target.value)}
         />
-        <button className="btn-primary" onClick={fazerLogin}>Entrar</button>
-        <button className="btn-secondary" onClick={registrar}>Registrar</button>
+        <button
+          className="w-full p-2 sm:p-3 mb-2 sm:mb-3 bg-blue-600 text-white rounded-2xl hover:bg-blue-700 transition duration-200 text-xs sm:text-sm"
+          onClick={handleLogin}
+        >
+          Entrar
+        </button>
+        <button
+          className="w-full p-2 sm:p-3 mb-2 sm:mb-3 bg-blue-500 text-white rounded-2xl hover:bg-blue-600 transition duration-200 text-xs sm:text-sm"
+          onClick={() => setRegisterModalOpen(true)}
+        >
+          Registrar
+        </button>
+        <button
+          className="w-full p-2 sm:p-3 mb-2 sm:mb-3 bg-white text-blue-600 border border-blue-600 rounded-2xl hover:bg-blue-50 transition duration-200 text-xs sm:text-sm"
+          onClick={handleGoogleLogin}
+        >
+          Entrar com Google
+        </button>
+        <button
+          className="w-full p-2 sm:p-3 mb-2 sm:mb-3 bg-gray-500 text-white rounded-2xl hover:bg-gray-600 transition duration-200 text-xs sm:text-sm"
+          onClick={handleAnonymousMode}
+        >
+          Usar Modo Anônimo (Offline)
+        </button>
+        <button
+          className="w-full p-2 sm:p-3 bg-transparent text-blue-600 underline hover:text-blue-800 transition duration-200 text-xs sm:text-sm"
+          onClick={() => setResetModalOpen(true)}
+        >
+          Esqueci a senha
+        </button>
       </div>
+
+      {registerModalOpen && <RegisterModal setRegisterModalOpen={setRegisterModalOpen} setErro={setErro} setLogado={setLogado} />}
+      {resetModalOpen && <ResetPasswordModal setResetModalOpen={setResetModalOpen} setErro={setErro} />}
     </div>
   );
 }
+
+export default Login;
