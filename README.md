@@ -1,4 +1,4 @@
-
+# Faltaí
 
 Bem-vindo ao **Faltaí**, um aplicativo web simples e prático para controlar suas faltas da faculdade. Com ele, você pode gerenciar suas matérias, registrar faltas e visualizar tudo em um calendário interativo, seja no modo online (com Firebase) ou anônimo (salvo localmente).
 
