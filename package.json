@@ -2,7 +2,7 @@
   "name": "faltai",
   "version": "0.1.0",
   "private": true,
-  "homepage": "https://victorhugoguimaraes.github.io/Faltaai/",
+  "homepage": "https://victorhugoguimaraes.github.io/Faltai/",
   "dependencies": {
     "@testing-library/dom": "^10.4.0",
     "@testing-library/jest-dom": "^6.6.3",
