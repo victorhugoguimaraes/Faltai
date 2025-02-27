@@ -38,12 +38,4 @@ O projeto é hospedado no GitHub Pages e usa React com Firebase para autenticaç
 4. **Logout**:
    - Clique no "X" vermelho no canto superior direito para sair.
 
-## Instalação Local
 
-Quer rodar o Faltaí localmente? Siga os passos abaixo:
-
-### Pré-requisitos
-
-- [Node.js](https://nodejs.org/) (versão 14 ou superior)
-- [Git](https://git-scm.com/)
-- Conta no [Firebase](https://firebase.google.com/) (para modo online)
