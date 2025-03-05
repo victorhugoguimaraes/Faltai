@@ -1,16 +1,20 @@
 import React, { useState } from 'react';
 import { resetPassword } from '../services/authService';
 
-function ResetPasswordModal({ setResetModalOpen, setErro }) {
+function ResetPasswordModal({ setResetModalOpen }) {
   const [resetEmail, setResetEmail] = useState('');
+  const [message, setMessage] = useState('');
 
   const handleReset = async (e) => {
     e.preventDefault();
     const result = await resetPassword(resetEmail);
-    setErro(result.message);
+    setMessage(result.message);
     if (result.success) {
-      setResetModalOpen(false);
-      setResetEmail('');
+      setTimeout(() => {
+        setResetModalOpen(false);
+        setResetEmail('');
+        setMessage('');
+      }, 2000); // Fecha o modal após 2 segundos se sucesso
     }
   };
 
@@ -21,6 +25,7 @@ function ResetPasswordModal({ setResetModalOpen, setErro }) {
         <p className="text-xs sm:text-sm text-gray-600 mb-3 sm:mb-4">
           Insira seu email para receber um link de redefinição.
         </p>
+        {message && <p className={`text-xs sm:text-sm mb-3 sm:mb-4 text-center ${message.includes('Erro') ? 'text-red-500' : 'text-green-500'}`}>{message}</p>}
         <form onSubmit={handleReset}>
           <input
             className="w-full p-2 sm:p-3 mb-3 sm:mb-6 border border-blue-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-blue-50 placeholder-gray-500 text-xs sm:text-sm"

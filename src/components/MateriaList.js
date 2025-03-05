@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, memo } from 'react';
 import { addFalta, removeFalta } from '../services/materiaService';
 import CalendarModal from './CalendarModal';
 
-function MateriaList({ materias, setMaterias, setEditModalOpen, setDeleteModalOpen, setEditIndex, setMateriaToDelete, isOnline }) {
+const MateriaList = memo(({ materias, setMaterias, setEditModalOpen, setDeleteModalOpen, setEditIndex, setMateriaToDelete, isOnline }) => {
   const [selectedMateria, setSelectedMateria] = useState(null);
   const [calendarModalOpen, setCalendarModalOpen] = useState(false);
 
@@ -32,58 +32,58 @@ function MateriaList({ materias, setMaterias, setEditModalOpen, setDeleteModalOp
   };
 
   if (materias.length === 0) {
-    return <p className="text-center text-gray-600 text-xs sm:text-sm px-2 sm:px-4">Nenhuma matéria cadastrada.</p>;
+    return <p className="text-center text-gray-600 text-sm sm:text-base">Nenhuma matéria cadastrada.</p>;
   }
 
   return (
-    <>
+    <div className="space-y-4">
       {materias.map((materia, index) => (
         <div
           key={index}
-          className="relative p-2 sm:p-3 mb-2 sm:mb-3 bg-white rounded-3xl shadow-md border-l-4 border-blue-300 transition-transform transform hover:scale-105 z-10 flex justify-between items-center mx-2 sm:mx-4"
+          className="bg-white p-4 sm:p-6 rounded-lg shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center transition-transform hover:scale-[1.02]"
         >
-          <div className="flex-grow">
-            <h3 className="text-sm sm:text-base font-semibold text-blue-700">
+          <div className="flex-grow mb-2 sm:mb-0">
+            <h3 className="text-sm sm:text-base md:text-lg font-medium text-blue-600">
               {materia.nome} ({materia.horas}h)
             </h3>
-            <p className="text-xs sm:text-sm text-gray-700">
+            <p className="text-xs sm:text-sm text-gray-600">
               Faltas: {materia.faltas}/{materia.maxFaltas}
             </p>
           </div>
-          <div className="flex gap-1 sm:gap-2">
+          <div className="flex gap-2 sm:gap-3">
             <button
-              className={`p-1 sm:p-2 rounded-3xl text-white ${materia.faltas >= materia.maxFaltas ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'} transition duration-200 text-xs sm:text-sm`}
+              className={`p-2 rounded-full text-white ${materia.faltas >= materia.maxFaltas ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'} transition duration-200 text-xs sm:text-sm`}
               onClick={() => handleAddFalta(index)}
               disabled={materia.faltas >= materia.maxFaltas}
             >
               +
             </button>
             <button
-              className={`p-1 sm:p-2 rounded-3xl text-white ${materia.faltas <= 0 ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'} transition duration-200 text-xs sm:text-sm`}
+              className={`p-2 rounded-full text-white ${materia.faltas <= 0 ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'} transition duration-200 text-xs sm:text-sm`}
               onClick={() => handleRemoveFalta(index)}
               disabled={materia.faltas <= 0}
             >
               -
             </button>
             <button
-              className="p-1 sm:p-2 bg-yellow-500 text-white rounded-3xl hover:bg-yellow-600 transition duration-200 text-xs sm:text-sm"
+              className="p-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition duration-200 text-xs sm:text-sm"
               onClick={() => handleEdit(index)}
             >
               Editar
             </button>
             <button
-              className="p-1 sm:p-2 bg-red-600 text-white rounded-3xl hover:bg-red-700 transition duration-200 text-xs sm:text-sm"
+              className="p-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition duration-200 text-xs sm:text-sm"
               onClick={() => handleDelete(index)}
             >
               Excluir
             </button>
+            <button
+              className="p-2 bg-blue-500 text-white rounded-full hover:bg-blue-600 transition duration-200 text-xs sm:text-sm"
+              onClick={() => handleCalendar(index)}
+            >
+              📅
+            </button>
           </div>
-          <button
-            className="absolute right-[-30px] top-1/2 transform -translate-y-1/2 p-1 sm:p-2 bg-blue-400 text-white rounded-full hover:bg-blue-500 transition duration-200 text-xs sm:text-sm"
-            onClick={() => handleCalendar(index)}
-          >
-            📅
-          </button>
         </div>
       ))}
       {calendarModalOpen && (
@@ -95,8 +95,8 @@ function MateriaList({ materias, setMaterias, setEditModalOpen, setDeleteModalOp
           onClose={() => setCalendarModalOpen(false)}
         />
       )}
-    </>
+    </div>
   );
-}
+});
 
 export default MateriaList;
