@@ -14,7 +14,7 @@ function Materias() {
   }, []);
 
   const handleAdicionar = async () => {
-    if (!novaMateria.trim()) return; // Evita nome vazio
+    if (!novaMateria.trim()) return; 
     await adicionarMateria(novaMateria);
     setNovaMateria("");
     const dados = await carregarMaterias();
