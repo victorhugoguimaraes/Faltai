@@ -3,17 +3,32 @@
   <head>
     <meta charset="utf-8" />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <!-- Ícone para navegadores (web) - Corrigido para usar o mesmo ícone do iPhone -->
-    <link rel="icon" type="image/png" href="%PUBLIC_URL%/apple-touch-icon.png" />
-    <!-- Ícone para iPhone/iPad (mantido como está, funcionando bem) -->
-    <link rel="apple-touch-icon" sizes="180x180" href="%PUBLIC_URL%/apple-touch-icon.png" />
-    <!-- Configurações gerais -->
-    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
-    <meta name="theme-color" content="#2563eb" />
-    <meta name="description" content="Faltaí - Controle suas faltas da faculdade de forma simples e prática." />
-    <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    
+    <!-- Ícones e manifesto -->
+    <link rel="icon" type="image/png" href="%PUBLIC_URL%/icon-192.png" />
+    <link rel="apple-touch-icon" href="%PUBLIC_URL%/apple-touch-icon.png" />
     <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
+    
+    <!-- Meta tags para PWA -->
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+    <meta name="theme-color" content="#3b82f6" />
+    <meta name="description" content="Faltaí - Controle suas faltas da faculdade de forma simples e prática." />
+    
+    <!-- Meta tags específicas para iOS -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Faltaí" />
+    
+    <!-- Meta tags específicas para Android -->
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="application-name" content="Faltaí" />
+    
+    <!-- Splash screens para iOS -->
+    <link rel="apple-touch-startup-image" href="%PUBLIC_URL%/splash-640x1136.png" media="(device-width: 320px) and (device-height: 568px) and (-webkit-device-pixel-ratio: 2)" />
+    <link rel="apple-touch-startup-image" href="%PUBLIC_URL%/splash-750x1334.png" media="(device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2)" />
+    <link rel="apple-touch-startup-image" href="%PUBLIC_URL%/splash-1242x2208.png" media="(device-width: 414px) and (device-height: 736px) and (-webkit-device-pixel-ratio: 3)" />
+    <link rel="apple-touch-startup-image" href="%PUBLIC_URL%/splash-1125x2436.png" media="(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3)" />
+    
     <title>Faltaí</title>
   </head>
   <body>

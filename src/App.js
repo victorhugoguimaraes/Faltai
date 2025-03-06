@@ -7,7 +7,9 @@ import AddMateriaModal from './components/AddMateriaModal';
 import EditMateriaModal from './components/EditMateriaModal';
 import DeleteMateriaModal from './components/DeleteMateriaModal';
 import LogoutConfirmationModal from './components/LogoutConfirmationModal';
-import { FaLinkedin, FaGithub } from 'react-icons/fa'; // Adicione esta linha para usar ícones do react-icons
+import NotificationManager from './components/NotificationManager';
+import GamificationSystem from './components/GamificationSystem';
+import { FaLinkedin, FaGithub, FaTimes, FaTrophy } from 'react-icons/fa';
 
 function App() {
   const [logado, setLogado] = useState(() => localStorage.getItem('logado') === 'true');
@@ -18,10 +20,9 @@ function App() {
   const [logoutModalOpen, setLogoutModalOpen] = useState(false);
   const [editIndex, setEditIndex] = useState(null);
   const [materiaToDelete, setMateriaToDelete] = useState(null);
-  const [editNome, setEditNome] = useState('');
-  const [editHoras, setEditHoras] = useState('');
-  const [editPesoFalta, setEditPesoFalta] = useState('1');
   const [isOnline, setIsOnline] = useState(() => localStorage.getItem('isOnline') === 'true');
+  const notificationManagerRef = React.useRef(null);
+  const [gamificationOpen, setGamificationOpen] = useState(false);
 
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged(async (user) => {
@@ -79,16 +80,24 @@ function App() {
       {logado ? (
         <div className="w-full max-w-4xl mx-auto px-4 sm:px-6 flex flex-col flex-grow">
           <header className="mb-4 sm:mb-6">
-            <div className="flex justify-between items-center">
+            <div className="relative flex justify-center items-center">
               <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-blue-600">
                 Faltaí
               </h1>
-              <button
-                className="p-2 bg-red-500 text-white rounded-full hover:bg-red-600 transition duration-200 text-sm sm:text-base shadow-sm"
-                onClick={() => setLogoutModalOpen(true)}
-              >
-                X
-              </button>
+              <div className="absolute right-0 flex items-center space-x-2">
+                <button
+                  className="p-2 bg-blue-500 text-white rounded-full hover:bg-blue-600 transition duration-200 text-sm sm:text-base shadow-sm"
+                  onClick={() => setGamificationOpen(true)}
+                >
+                  <FaTrophy />
+                </button>
+                <button
+                  className="p-2 bg-red-500 text-white rounded-full hover:bg-red-600 transition duration-200 text-sm sm:text-base shadow-sm"
+                  onClick={() => setLogoutModalOpen(true)}
+                >
+                  <FaTimes />
+                </button>
+              </div>
             </div>
           </header>
 
@@ -123,12 +132,6 @@ function App() {
             <EditMateriaModal
               setEditModalOpen={setEditModalOpen}
               editIndex={editIndex}
-              editNome={editNome}
-              setEditNome={setEditNome}
-              editHoras={editHoras}
-              setEditHoras={setEditHoras}
-              editPesoFalta={editPesoFalta}
-              setEditPesoFalta={setEditPesoFalta}
               materias={materias}
               setMaterias={setMaterias}
               isOnline={isOnline}
@@ -151,10 +154,31 @@ function App() {
               onLogout={handleLogoutComplete}
             />
           )}
+          
+          {logado && (
+            <>
+              <NotificationManager
+                materias={materias}
+                ref={notificationManagerRef}
+              />
+              {gamificationOpen && (
+                <GamificationSystem
+                  materias={materias}
+                  onClose={() => setGamificationOpen(false)}
+                  onNotification={(notification) => {
+                    if (notificationManagerRef.current) {
+                      notificationManagerRef.current.addNotification(notification);
+                    }
+                  }}
+                />
+              )}
+            </>
+          )}
 
           <footer className="mt-6 bg-gray-50 p-4 text-center text-gray-600 text-xs sm:text-sm rounded-t-lg shadow-sm">
+            <p>Desenvolvido por Victor Guimarães</p>
             <div className="flex justify-center gap-2 sm:gap-4">
-              <a href="https://www.linkedin.com/in/victorhugoguimaraes" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800">
+              <a href="https://www.linkedin.com/in/victor-hugo-guimarães-nascimento/" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800">
                 <FaLinkedin className="text-xl sm:text-2xl" />
               </a>
               <a href="https://github.com/victorhugoguimaraes" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800">
@@ -164,8 +188,8 @@ function App() {
             <div className="mt-2">
               <p className="text-xs sm:text-sm text-gray-500">
                 <strong>Adicionar à tela inicial:</strong><br />
-                <span className="block">Android: No Chrome, clique em "⋮" > "Adicionar à tela inicial".</span>
-                <span className="block">iPhone: No Safari, clique em "⬆" > "Adicionar à Tela Inicial".</span>
+                <span className="block">Android: No Chrome, clique em "⋮" {'>'} "Adicionar à tela inicial".</span>
+                <span className="block">iPhone: No Safari, clique em "⬆" {'>'} "Adicionar à Tela Inicial".</span>
               </p>
             </div>
           </footer>

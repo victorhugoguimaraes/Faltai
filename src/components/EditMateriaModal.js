@@ -1,79 +1,231 @@
-import React, { useState, useEffect } from 'react';
-import { editMateria } from '../services/materiaService';
+import React, { useState } from 'react';
+import { FaTimes, FaPlus, FaClipboardCheck, FaBook } from 'react-icons/fa';
+import { auth, db } from '../firebase';
+import { doc, updateDoc } from 'firebase/firestore';
 
-function EditMateriaModal({ setEditModalOpen, editIndex, editNome, setEditNome, editHoras, setEditHoras, editPesoFalta, setEditPesoFalta, materias, setMaterias, isOnline }) {
-  const materiaAtual = materias[editIndex];
-  const [nome, setNome] = useState(materiaAtual.nome);
-  const [horas, setHoras] = useState(materiaAtual.horas.toString());
-  const [pesoFalta, setPesoFalta] = useState(materiaAtual.pesoFalta.toString());
+function EditMateriaModal({
+  setEditModalOpen,
+  editIndex,
+  materias,
+  setMaterias,
+  isOnline
+}) {
+  const [nome, setNome] = useState(materias[editIndex].nome);
+  const [horas, setHoras] = useState(materias[editIndex].horas.toString());
+  const [pesoFalta, setPesoFalta] = useState(materias[editIndex].pesoFalta.toString());
+  const [avaliacoes, setAvaliacoes] = useState(materias[editIndex].avaliacoes || []);
+  const [novaAvaliacao, setNovaAvaliacao] = useState({
+    tipo: 'PROVA',
+    data: '',
+    descricao: ''
+  });
+  const [mostrarAvaliacoes, setMostrarAvaliacoes] = useState(false);
 
-  useEffect(() => {
-    setNome(materiaAtual.nome);
-    setHoras(materiaAtual.horas.toString());
-    setPesoFalta(materiaAtual.pesoFalta.toString());
-  }, [editIndex, materias]);
-
-  const handleEditMateria = async (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    const novasMaterias = await editMateria(
-      editIndex,
-      nome !== materiaAtual.nome ? nome : undefined,
-      horas !== materiaAtual.horas.toString() ? Number(horas) : undefined,
-      pesoFalta !== materiaAtual.pesoFalta.toString() ? Number(pesoFalta) : undefined,
-      materias,
-      isOnline
-    );
+    if (!nome || !horas) return;
+
+    const maxFaltas = Math.ceil((parseInt(horas) * parseInt(pesoFalta)) / 15);
+    const materiaAtualizada = {
+      ...materias[editIndex],
+      nome,
+      horas: parseInt(horas),
+      pesoFalta: parseInt(pesoFalta),
+      maxFaltas,
+      avaliacoes
+    };
+
+    const novasMaterias = [...materias];
+    novasMaterias[editIndex] = materiaAtualizada;
     setMaterias(novasMaterias);
+
+    if (isOnline && auth.currentUser) {
+      try {
+        await updateDoc(doc(db, 'usuarios', auth.currentUser.uid), {
+          materias: novasMaterias
+        });
+      } catch (error) {
+        console.error('Erro ao salvar no Firebase:', error);
+      }
+    }
+
+    localStorage.setItem('materias', JSON.stringify(novasMaterias));
     setEditModalOpen(false);
   };
 
+  const adicionarAvaliacao = () => {
+    if (!novaAvaliacao.data) {
+      alert('Selecione uma data para a avaliação');
+      return;
+    }
+
+    setAvaliacoes(prev => [...prev, { ...novaAvaliacao, id: Date.now() }]);
+    setNovaAvaliacao({
+      tipo: 'PROVA',
+      data: '',
+      descricao: ''
+    });
+  };
+
+  const removerAvaliacao = (id) => {
+    setAvaliacoes(prev => prev.filter(av => av.id !== id));
+  };
+
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white p-4 sm:p-6 rounded-2xl shadow-lg w-full max-w-xs sm:max-w-sm">
-        <h2 className="text-lg sm:text-xl font-bold mb-3 sm:mb-4 text-blue-700">Editar Matéria</h2>
-        <p className="text-xs sm:text-sm text-gray-600 mb-3 sm:mb-4">
-          Cada falta é 1 aula de 50 min (ex.: 60h = 15 faltas). O peso converte pra dias:<br />
-          2 faltas/dia = 7 dias, 4 faltas/dia = 3 dias.
-        </p>
-        <form onSubmit={handleEditMateria}>
-          <input
-            className="w-full p-2 sm:p-3 mb-3 sm:mb-4 border border-blue-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-blue-50 placeholder-gray-500 text-xs sm:text-sm"
-            placeholder="Nome da matéria"
-            value={nome}
-            onChange={(e) => setNome(e.target.value)}
-          />
-          <select
-            className="w-full p-2 sm:p-3 mb-3 sm:mb-4 border border-blue-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-blue-50 text-gray-700 text-xs sm:text-sm"
-            value={horas}
-            onChange={(e) => setHoras(e.target.value)}
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-lg p-6 w-full max-w-md">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-xl font-semibold text-gray-800">Editar Matéria</h2>
+          <button
+            onClick={() => setEditModalOpen(false)}
+            className="text-gray-500 hover:text-gray-700"
           >
-            <option value="30">30 horas</option>
-            <option value="45">45 horas</option>
-            <option value="60">60 horas</option>
-            <option value="75">75 horas</option>
-            <option value="90">90 horas</option>
-            <option value="120">120 horas</option>
-          </select>
-          <select
-            className="w-full p-2 sm:p-3 mb-3 sm:mb-6 border border-blue-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-blue-50 text-gray-700 text-xs sm:text-sm"
-            value={pesoFalta}
-            onChange={(e) => setPesoFalta(e.target.value)}
-          >
-            <option value="1">1 falta por vez</option>
-            <option value="2">2 faltas por vez</option>
-            <option value="4">4 faltas por vez</option>
-          </select>
-          <div className="flex justify-end gap-2">
+            <FaTimes />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Nome da Matéria
+            </label>
+            <input
+              type="text"
+              value={nome}
+              onChange={(e) => setNome(e.target.value)}
+              className="w-full px-3 py-2 border rounded-md"
+              placeholder="Ex: Cálculo 1"
+              required
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Carga Horária
+            </label>
+            <select
+              value={horas}
+              onChange={(e) => setHoras(e.target.value)}
+              className="w-full px-3 py-2 border rounded-md"
+              required
+            >
+              <option value="">Selecione</option>
+              <option value="30">30 horas</option>
+              <option value="45">45 horas</option>
+              <option value="60">60 horas</option>
+              <option value="75">75 horas</option>
+              <option value="90">90 horas</option>
+              <option value="120">120 horas</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Peso da Falta
+            </label>
+            <select
+              value={pesoFalta}
+              onChange={(e) => setPesoFalta(e.target.value)}
+              className="w-full px-3 py-2 border rounded-md"
+            >
+              <option value="1">1 falta por vez</option>
+              <option value="2">2 faltas por vez</option>
+              <option value="4">4 faltas por vez</option>
+            </select>
+          </div>
+
+          <div className="border-t pt-4">
             <button
               type="button"
-              className="p-1 sm:p-2 bg-gray-400 text-white rounded-2xl hover:bg-gray-500 transition duration-200 text-xs sm:text-sm"
+              onClick={() => setMostrarAvaliacoes(!mostrarAvaliacoes)}
+              className="text-blue-600 hover:text-blue-700 text-sm flex items-center"
+            >
+              <FaPlus className="mr-1" /> {mostrarAvaliacoes ? 'Ocultar Avaliações' : 'Adicionar Avaliações'}
+            </button>
+          </div>
+
+          {mostrarAvaliacoes && (
+            <>
+              <div className="space-y-3 mb-4">
+                <div className="flex gap-2">
+                  <select
+                    value={novaAvaliacao.tipo}
+                    onChange={(e) => setNovaAvaliacao(prev => ({ ...prev, tipo: e.target.value }))}
+                    className="px-3 py-2 border rounded-md"
+                  >
+                    <option value="PROVA">Prova</option>
+                    <option value="TRABALHO">Trabalho</option>
+                  </select>
+                  <input
+                    type="date"
+                    value={novaAvaliacao.data}
+                    onChange={(e) => setNovaAvaliacao(prev => ({ ...prev, data: e.target.value }))}
+                    className="flex-1 px-3 py-2 border rounded-md"
+                  />
+                </div>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={novaAvaliacao.descricao}
+                    onChange={(e) => setNovaAvaliacao(prev => ({ ...prev, descricao: e.target.value }))}
+                    className="flex-1 px-3 py-2 border rounded-md"
+                    placeholder="Descrição (opcional)"
+                  />
+                  <button
+                    type="button"
+                    onClick={adicionarAvaliacao}
+                    className="px-3 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                  >
+                    Adicionar
+                  </button>
+                </div>
+              </div>
+
+              <div className="space-y-2 max-h-40 overflow-y-auto">
+                {avaliacoes.map(av => (
+                  <div
+                    key={av.id}
+                    className="flex items-center justify-between bg-gray-50 p-2 rounded-md"
+                  >
+                    <div className="flex items-center space-x-2">
+                      {av.tipo === 'PROVA' ? (
+                        <FaClipboardCheck className="text-red-500" />
+                      ) : (
+                        <FaBook className="text-red-500" />
+                      )}
+                      <div>
+                        <p className="text-sm font-medium">
+                          {new Date(av.data).toLocaleDateString('pt-BR')}
+                        </p>
+                        {av.descricao && (
+                          <p className="text-xs text-gray-500">{av.descricao}</p>
+                        )}
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => removerAvaliacao(av.id)}
+                      className="text-gray-400 hover:text-red-500"
+                    >
+                      <FaTimes />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+
+          <div className="flex justify-end space-x-2 pt-4">
+            <button
+              type="button"
               onClick={() => setEditModalOpen(false)}
+              className="px-4 py-2 text-gray-600 hover:text-gray-800"
             >
               Cancelar
             </button>
             <button
               type="submit"
-              className="p-1 sm:p-2 bg-blue-600 text-white rounded-2xl hover:bg-blue-700 transition duration-200 text-xs sm:text-sm"
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
             >
               Salvar
             </button>

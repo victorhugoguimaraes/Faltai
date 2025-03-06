@@ -3,7 +3,7 @@ import React from 'react';
 function AnonymousModal({ setAnonymousModalOpen, setLogado, setIsOnline }) {
   const handleAnonymousLogin = () => {
     setLogado(true);
-    setIsOnline(false); // Garante que o modo anônimo seja offline
+    setIsOnline(false); 
     setAnonymousModalOpen(false);
   };
 

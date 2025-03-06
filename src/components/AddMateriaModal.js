@@ -1,56 +1,107 @@
 import React, { useState } from 'react';
-import { addMateria } from '../services/materiaService';
+import { FaTimes, FaPlus, FaClipboardCheck, FaBook } from 'react-icons/fa';
+import { auth, db } from '../firebase';
+import { doc, updateDoc } from 'firebase/firestore';
 
 function AddMateriaModal({ setModalOpen, materias, setMaterias, isOnline }) {
-  const [novoNome, setNovoNome] = useState('');
-  const [novoHoras, setNovoHoras] = useState('');
-  const [novoPesoFalta, setNovoPesoFalta] = useState('1');
-  const [error, setError] = useState('');
+  const [nome, setNome] = useState('');
+  const [horas, setHoras] = useState('');
+  const [pesoFalta, setPesoFalta] = useState('1');
+  const [avaliacoes, setAvaliacoes] = useState([]);
+  const [novaAvaliacao, setNovaAvaliacao] = useState({
+    tipo: 'PROVA',
+    data: '',
+    descricao: ''
+  });
+  const [mostrarAvaliacoes, setMostrarAvaliacoes] = useState(false);
 
-  const handleAddMateria = async (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    const nome = novoNome.trim();
-    const horas = Number(novoHoras);
-    const pesoFalta = Number(novoPesoFalta);
+    if (!nome || !horas) return;
 
-    if (!nome || isNaN(horas) || horas <= 0 || isNaN(pesoFalta)) {
-      setError('Preencha todos os campos corretamente.');
+    const maxFaltas = Math.ceil((parseInt(horas) * parseInt(pesoFalta)) / 15);
+    const novaMateria = {
+      nome,
+      horas: parseInt(horas),
+      pesoFalta: parseInt(pesoFalta),
+      maxFaltas,
+      faltas: 0,
+      datasFaltas: [],
+      avaliacoes: avaliacoes
+    };
+
+    const novasMaterias = [...materias, novaMateria];
+    setMaterias(novasMaterias);
+
+    if (isOnline && auth.currentUser) {
+      try {
+        await updateDoc(doc(db, 'usuarios', auth.currentUser.uid), {
+          materias: novasMaterias
+        });
+      } catch (error) {
+        console.error('Erro ao salvar no Firebase:', error);
+      }
+    }
+
+    localStorage.setItem('materias', JSON.stringify(novasMaterias));
+    setModalOpen(false);
+  };
+
+  const adicionarAvaliacao = () => {
+    if (!novaAvaliacao.data) {
+      alert('Selecione uma data para a avaliação');
       return;
     }
 
-    setError('');
-    const novasMaterias = await addMateria(nome, horas, pesoFalta, materias, isOnline);
-    setMaterias(novasMaterias);
-    setModalOpen(false);
-    setNovoNome('');
-    setNovoHoras('');
-    setNovoPesoFalta('1');
+    setAvaliacoes(prev => [...prev, { ...novaAvaliacao, id: Date.now() }]);
+    setNovaAvaliacao({
+      tipo: 'PROVA',
+      data: '',
+      descricao: ''
+    });
+  };
+
+  const removerAvaliacao = (id) => {
+    setAvaliacoes(prev => prev.filter(av => av.id !== id));
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
-        <h2 className="text-xl font-bold mb-4 text-blue-600">Adicionar Matéria</h2>
-        <p className="text-sm text-gray-600 mb-4">
-          Cada falta é 1 aula de 50 min (ex.: 60h = 15 faltas). O peso converte pra dias:<br />
-          2 faltas/dia = 7 dias, 4 faltas/dia = 3 dias.
-        </p>
-        <form onSubmit={handleAddMateria} className="space-y-4">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-lg p-6 w-full max-w-md">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-xl font-semibold text-gray-800">Nova Matéria</h2>
+          <button
+            onClick={() => setModalOpen(false)}
+            className="text-gray-500 hover:text-gray-700"
+          >
+            <FaTimes />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700">Nome da Matéria</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Nome da Matéria
+            </label>
             <input
-              className="mt-1 block w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-base placeholder-gray-400"
-              placeholder="Nome da matéria"
-              value={novoNome}
-              onChange={(e) => setNovoNome(e.target.value)}
+              type="text"
+              value={nome}
+              onChange={(e) => setNome(e.target.value)}
+              className="w-full px-3 py-2 border rounded-md"
+              placeholder="Ex: Cálculo 1"
+              required
             />
           </div>
+
           <div>
-            <label className="block text-sm font-medium text-gray-700">Carga Horária</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Carga Horária
+            </label>
             <select
-              className="mt-1 block w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-base text-gray-700"
-              value={novoHoras}
-              onChange={(e) => setNovoHoras(e.target.value)}
+              value={horas}
+              onChange={(e) => setHoras(e.target.value)}
+              className="w-full px-3 py-2 border rounded-md"
+              required
             >
               <option value="">Selecione</option>
               <option value="30">30 horas</option>
@@ -61,34 +112,116 @@ function AddMateriaModal({ setModalOpen, materias, setMaterias, isOnline }) {
               <option value="120">120 horas</option>
             </select>
           </div>
+
           <div>
-            <label className="block text-sm font-medium text-gray-700">Peso da Falta</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Peso da Falta
+            </label>
             <select
-              className="mt-1 block w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-base text-gray-700"
-              value={novoPesoFalta}
-              onChange={(e) => setNovoPesoFalta(e.target.value)}
+              value={pesoFalta}
+              onChange={(e) => setPesoFalta(e.target.value)}
+              className="w-full px-3 py-2 border rounded-md"
             >
               <option value="1">1 falta por vez</option>
               <option value="2">2 faltas por vez</option>
               <option value="4">4 faltas por vez</option>
             </select>
           </div>
-          {error && (
-            <p className="text-red-500 text-sm text-center">{error}</p>
-          )}
-          <div className="flex justify-end gap-2">
+
+          <div className="border-t pt-4">
             <button
               type="button"
-              className="p-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition duration-200 text-sm"
+              onClick={() => setMostrarAvaliacoes(!mostrarAvaliacoes)}
+              className="text-blue-600 hover:text-blue-700 text-sm flex items-center"
+            >
+              <FaPlus className="mr-1" /> {mostrarAvaliacoes ? 'Ocultar Avaliações' : 'Adicionar Avaliações'}
+            </button>
+          </div>
+
+          {mostrarAvaliacoes && (
+            <>
+              <div className="space-y-3 mb-4">
+                <div className="flex gap-2">
+                  <select
+                    value={novaAvaliacao.tipo}
+                    onChange={(e) => setNovaAvaliacao(prev => ({ ...prev, tipo: e.target.value }))}
+                    className="px-3 py-2 border rounded-md"
+                  >
+                    <option value="PROVA">Prova</option>
+                    <option value="TRABALHO">Trabalho</option>
+                  </select>
+                  <input
+                    type="date"
+                    value={novaAvaliacao.data}
+                    onChange={(e) => setNovaAvaliacao(prev => ({ ...prev, data: e.target.value }))}
+                    className="flex-1 px-3 py-2 border rounded-md"
+                  />
+                </div>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={novaAvaliacao.descricao}
+                    onChange={(e) => setNovaAvaliacao(prev => ({ ...prev, descricao: e.target.value }))}
+                    className="flex-1 px-3 py-2 border rounded-md"
+                    placeholder="Descrição (opcional)"
+                  />
+                  <button
+                    type="button"
+                    onClick={adicionarAvaliacao}
+                    className="px-3 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                  >
+                    Adicionar
+                  </button>
+                </div>
+              </div>
+
+              <div className="space-y-2 max-h-40 overflow-y-auto">
+                {avaliacoes.map(av => (
+                  <div
+                    key={av.id}
+                    className="flex items-center justify-between bg-gray-50 p-2 rounded-md"
+                  >
+                    <div className="flex items-center space-x-2">
+                      {av.tipo === 'PROVA' ? (
+                        <FaClipboardCheck className="text-red-500" />
+                      ) : (
+                        <FaBook className="text-red-500" />
+                      )}
+                      <div>
+                        <p className="text-sm font-medium">
+                          {new Date(av.data).toLocaleDateString('pt-BR')}
+                        </p>
+                        {av.descricao && (
+                          <p className="text-xs text-gray-500">{av.descricao}</p>
+                        )}
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => removerAvaliacao(av.id)}
+                      className="text-gray-400 hover:text-red-500"
+                    >
+                      <FaTimes />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+
+          <div className="flex justify-end space-x-2 pt-4">
+            <button
+              type="button"
               onClick={() => setModalOpen(false)}
+              className="px-4 py-2 text-gray-600 hover:text-gray-800"
             >
               Cancelar
             </button>
             <button
               type="submit"
-              className="p-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition duration-200 text-sm"
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
             >
-              Salvar
+              Adicionar
             </button>
           </div>
         </form>
