@@ -19,22 +19,17 @@ function MateriaList({ materias, setMaterias, setEditModalOpen, setDeleteModalOp
     }
 
     const novasMaterias = [...materias];
-    const hoje = new Date().toISOString().split('T')[0]; // Formato YYYY-MM-DD
+    const hoje = new Date().toISOString().split('T')[0];
 
-    // Se estiver adicionando uma falta
     if (delta > 0) {
-      // Inicializa o array de datas se não existir
       if (!novasMaterias[index].datasFaltas) {
         novasMaterias[index].datasFaltas = [];
       }
-      // Adiciona a data de hoje para cada falta adicionada
       for (let i = 0; i < delta; i++) {
         novasMaterias[index].datasFaltas.push(hoje);
       }
     } 
-    // Se estiver removendo uma falta
     else if (delta < 0) {
-      // Remove a última data do array de faltas
       if (novasMaterias[index].datasFaltas && novasMaterias[index].datasFaltas.length > 0) {
         novasMaterias[index].datasFaltas.pop();
       }
