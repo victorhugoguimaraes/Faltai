@@ -183,11 +183,11 @@ function FaltaiCalendar({ materias, setMaterias, isOnline, selectedMateria, onCl
         .avaliacao-marcada abbr {
           color: white;
         }
-        .react-calendar__month-view__days__day--weekend {
-          color: #ef4444;
-        }
         .react-calendar__month-view__days__day--neighboringMonth {
           color: #9ca3af;
+        }
+        .react-calendar__month-view__days__day--weekend {
+          color: #374151;
         }
         .react-calendar__tile--now {
           background: transparent !important;
