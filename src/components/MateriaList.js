@@ -1,19 +1,64 @@
-import React, { useState, memo } from 'react';
-import { addFalta, removeFalta } from '../services/materiaService';
-import CalendarModal from './CalendarModal';
+import React, { useState } from 'react';
+import { FaEdit, FaTrash, FaCalendarAlt, FaPlus, FaMinus } from 'react-icons/fa';
+import { auth, db } from '../firebase';
+import { doc, updateDoc } from 'firebase/firestore';
+import FaltaiCalendar from './FaltaiCalendar';
 
-const MateriaList = memo(({ materias, setMaterias, setEditModalOpen, setDeleteModalOpen, setEditIndex, setMateriaToDelete, isOnline }) => {
+function MateriaList({ materias, setMaterias, setEditModalOpen, setDeleteModalOpen, setEditIndex, setMateriaToDelete, isOnline }) {
   const [selectedMateria, setSelectedMateria] = useState(null);
-  const [calendarModalOpen, setCalendarModalOpen] = useState(false);
+  const [calendarOpen, setCalendarOpen] = useState(false);
 
-  const handleAddFalta = async (index) => {
-    const novasMaterias = await addFalta(index, materias, isOnline);
-    setMaterias(novasMaterias);
-  };
+  const handleFaltaChange = async (index, delta) => {
+    const materia = materias[index];
+    const novasFaltas = materia.faltas + delta;
 
-  const handleRemoveFalta = async (index) => {
-    const novasMaterias = await removeFalta(index, materias, isOnline);
+    if (novasFaltas < 0) return;
+    if (novasFaltas > materia.maxFaltas) {
+      alert('Número máximo de faltas atingido!');
+      return;
+    }
+
+    const novasMaterias = [...materias];
+    const hoje = new Date().toISOString().split('T')[0]; // Formato YYYY-MM-DD
+
+    // Se estiver adicionando uma falta
+    if (delta > 0) {
+      // Inicializa o array de datas se não existir
+      if (!novasMaterias[index].datasFaltas) {
+        novasMaterias[index].datasFaltas = [];
+      }
+      // Adiciona a data de hoje para cada falta adicionada
+      for (let i = 0; i < delta; i++) {
+        novasMaterias[index].datasFaltas.push(hoje);
+      }
+    } 
+    // Se estiver removendo uma falta
+    else if (delta < 0) {
+      // Remove a última data do array de faltas
+      if (novasMaterias[index].datasFaltas && novasMaterias[index].datasFaltas.length > 0) {
+        novasMaterias[index].datasFaltas.pop();
+      }
+    }
+
+    novasMaterias[index] = {
+      ...materia,
+      faltas: novasFaltas,
+      datasFaltas: novasMaterias[index].datasFaltas || []
+    };
+
     setMaterias(novasMaterias);
+
+    if (isOnline && auth.currentUser) {
+      try {
+        await updateDoc(doc(db, 'usuarios', auth.currentUser.uid), {
+          materias: novasMaterias
+        });
+      } catch (error) {
+        console.error('Erro ao atualizar faltas:', error);
+      }
+    }
+
+    localStorage.setItem('materias', JSON.stringify(novasMaterias));
   };
 
   const handleEdit = (index) => {
@@ -26,77 +71,124 @@ const MateriaList = memo(({ materias, setMaterias, setEditModalOpen, setDeleteMo
     setDeleteModalOpen(true);
   };
 
-  const handleCalendar = (index) => {
+  const handleCalendarClick = (index) => {
     setSelectedMateria(index);
-    setCalendarModalOpen(true);
+    setCalendarOpen(true);
   };
 
-  if (materias.length === 0) {
-    return <p className="text-center text-gray-600 text-sm sm:text-base">Nenhuma matéria cadastrada.</p>;
-  }
+  const calcularPorcentagemFaltas = (materia) => {
+    return ((materia.faltas / materia.maxFaltas) * 100).toFixed(0);
+  };
+
+  const getStatusColor = (porcentagem) => {
+    if (porcentagem >= 100) return 'bg-red-500';
+    if (porcentagem >= 75) return 'bg-yellow-500';
+    return 'bg-green-500';
+  };
 
   return (
     <div className="space-y-4">
-      {materias.map((materia, index) => (
-        <div
-          key={index}
-          className="bg-white p-4 sm:p-6 rounded-lg shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center transition-transform hover:scale-[1.02]"
-        >
-          <div className="flex-grow mb-2 sm:mb-0">
-            <h3 className="text-sm sm:text-base md:text-lg font-medium text-blue-600">
-              {materia.nome} ({materia.horas}h)
-            </h3>
-            <p className="text-xs sm:text-sm text-gray-600">
-              Faltas: {materia.faltas}/{materia.maxFaltas}
-            </p>
+      {materias.map((materia, index) => {
+        const porcentagemFaltas = calcularPorcentagemFaltas(materia);
+        const statusColor = getStatusColor(porcentagemFaltas);
+        const proximasAvaliacoes = (materia.avaliacoes || [])
+          .filter(av => new Date(av.data) >= new Date())
+          .sort((a, b) => new Date(a.data) - new Date(b.data))
+          .slice(0, 2);
+
+        return (
+          <div
+            key={index}
+            className="bg-white rounded-lg shadow-sm p-4 space-y-3"
+          >
+            <div className="flex justify-between items-start">
+              <div>
+                <h3 className="text-lg font-semibold text-gray-800">
+                  {materia.nome}
+                </h3>
+                <p className="text-sm text-gray-600">
+                  {materia.horas}h • {materia.faltas}/{materia.maxFaltas} faltas
+                </p>
+                {proximasAvaliacoes.length > 0 && (
+                  <div className="mt-2 space-y-1">
+                    {proximasAvaliacoes.map((av, idx) => (
+                      <p key={idx} className="text-xs text-gray-500 flex items-center">
+                        {av.tipo === 'PROVA' ? (
+                          <span className="w-2 h-2 rounded-full bg-red-500 mr-2" />
+                        ) : (
+                          <span className="w-2 h-2 rounded-full bg-blue-500 mr-2" />
+                        )}
+                        {new Date(av.data).toLocaleDateString('pt-BR')}
+                        {av.descricao && ` - ${av.descricao}`}
+                      </p>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={() => handleCalendarClick(index)}
+                  className="p-2 text-blue-600 hover:bg-blue-50 rounded-full transition-colors"
+                >
+                  <FaCalendarAlt />
+                </button>
+                <button
+                  onClick={() => handleEdit(index)}
+                  className="p-2 text-yellow-600 hover:bg-yellow-50 rounded-full transition-colors"
+                >
+                  <FaEdit />
+                </button>
+                <button
+                  onClick={() => handleDelete(index)}
+                  className="p-2 text-red-600 hover:bg-red-50 rounded-full transition-colors"
+                >
+                  <FaTrash />
+                </button>
+              </div>
+            </div>
+
+            <div className="flex items-center space-x-4">
+              <div className="flex-1">
+                <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+                  <div
+                    className={`h-full ${statusColor} transition-all duration-500`}
+                    style={{ width: `${porcentagemFaltas}%` }}
+                  />
+                </div>
+              </div>
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={() => handleFaltaChange(index, -1)}
+                  className="p-1 text-blue-600 hover:bg-blue-50 rounded-full transition-colors"
+                >
+                  <FaMinus />
+                </button>
+                <span className="text-sm font-medium text-gray-600">
+                  {porcentagemFaltas}%
+                </span>
+                <button
+                  onClick={() => handleFaltaChange(index, 1)}
+                  className="p-1 text-blue-600 hover:bg-blue-50 rounded-full transition-colors"
+                >
+                  <FaPlus />
+                </button>
+              </div>
+            </div>
           </div>
-          <div className="flex gap-2 sm:gap-3">
-            <button
-              className={`p-2 rounded-full text-white ${materia.faltas >= materia.maxFaltas ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'} transition duration-200 text-xs sm:text-sm`}
-              onClick={() => handleAddFalta(index)}
-              disabled={materia.faltas >= materia.maxFaltas}
-            >
-              +
-            </button>
-            <button
-              className={`p-2 rounded-full text-white ${materia.faltas <= 0 ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'} transition duration-200 text-xs sm:text-sm`}
-              onClick={() => handleRemoveFalta(index)}
-              disabled={materia.faltas <= 0}
-            >
-              -
-            </button>
-            <button
-              className="p-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition duration-200 text-xs sm:text-sm"
-              onClick={() => handleEdit(index)}
-            >
-              Editar
-            </button>
-            <button
-              className="p-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition duration-200 text-xs sm:text-sm"
-              onClick={() => handleDelete(index)}
-            >
-              Excluir
-            </button>
-            <button
-              className="p-2 bg-blue-500 text-white rounded-full hover:bg-blue-600 transition duration-200 text-xs sm:text-sm"
-              onClick={() => handleCalendar(index)}
-            >
-              📅
-            </button>
-          </div>
-        </div>
-      ))}
-      {calendarModalOpen && (
-        <CalendarModal
-          materia={materias[selectedMateria]}
+        );
+      })}
+
+      {calendarOpen && selectedMateria !== null && (
+        <FaltaiCalendar
           materias={materias}
           setMaterias={setMaterias}
           isOnline={isOnline}
-          onClose={() => setCalendarModalOpen(false)}
+          selectedMateria={selectedMateria}
+          onClose={() => setCalendarOpen(false)}
         />
       )}
     </div>
   );
-});
+}
 
 export default MateriaList;
