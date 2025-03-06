@@ -1,15 +1,15 @@
 {
   "files": {
     "main.css": "/Faltai/static/css/main.339f55ac.css",
-    "main.js": "/Faltai/static/js/main.ed0f0d42.js",
+    "main.js": "/Faltai/static/js/main.5334ebac.js",
     "static/js/453.7ffff41a.chunk.js": "/Faltai/static/js/453.7ffff41a.chunk.js",
     "index.html": "/Faltai/index.html",
     "main.339f55ac.css.map": "/Faltai/static/css/main.339f55ac.css.map",
-    "main.ed0f0d42.js.map": "/Faltai/static/js/main.ed0f0d42.js.map",
+    "main.5334ebac.js.map": "/Faltai/static/js/main.5334ebac.js.map",
     "453.7ffff41a.chunk.js.map": "/Faltai/static/js/453.7ffff41a.chunk.js.map"
   },
   "entrypoints": [
     "static/css/main.339f55ac.css",
-    "static/js/main.ed0f0d42.js"
+    "static/js/main.5334ebac.js"
   ]
 }
