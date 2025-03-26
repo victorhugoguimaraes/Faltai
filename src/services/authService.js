@@ -56,6 +56,6 @@ export const logout = async () => {
     await signOut(auth);
   } catch (error) {
     console.error('Erro ao fazer logout:', error.message);
-    throw error; // Re-throw para ser tratado no chamador
+    throw error; 
   }
 };
