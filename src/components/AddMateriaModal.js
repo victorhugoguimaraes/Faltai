@@ -19,7 +19,7 @@ function AddMateriaModal({ setModalOpen, materias, setMaterias, isOnline }) {
     e.preventDefault();
     if (!nome || !horas) return;
 
-    const maxFaltas = Math.ceil((parseInt(horas) * parseInt(pesoFalta)) / 15);
+    const maxFaltas = Math.floor((parseInt(horas) * 0.25) / parseInt(pesoFalta));
     const novaMateria = {
       nome,
       horas: parseInt(horas),
