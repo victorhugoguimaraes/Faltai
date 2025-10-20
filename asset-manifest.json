@@ -1,7 +1,7 @@
 {
   "files": {
-    "main.css": "/Faltai/static/css/main.4f39ac4c.css",
-    "main.js": "/Faltai/static/js/main.6ce06b8e.js",
+    "main.css": "/Faltai/static/css/main.efeeb446.css",
+    "main.js": "/Faltai/static/js/main.89cc2d2d.js",
     "static/js/317.b8b8b49e.chunk.js": "/Faltai/static/js/317.b8b8b49e.chunk.js",
     "static/js/693.86c24618.chunk.js": "/Faltai/static/js/693.86c24618.chunk.js",
     "static/js/282.e7a125dc.chunk.js": "/Faltai/static/js/282.e7a125dc.chunk.js",
@@ -11,8 +11,8 @@
     "static/js/977.7ad3bb3e.chunk.js": "/Faltai/static/js/977.7ad3bb3e.chunk.js",
     "static/js/58.6b86817b.chunk.js": "/Faltai/static/js/58.6b86817b.chunk.js",
     "index.html": "/Faltai/index.html",
-    "main.4f39ac4c.css.map": "/Faltai/static/css/main.4f39ac4c.css.map",
-    "main.6ce06b8e.js.map": "/Faltai/static/js/main.6ce06b8e.js.map",
+    "main.efeeb446.css.map": "/Faltai/static/css/main.efeeb446.css.map",
+    "main.89cc2d2d.js.map": "/Faltai/static/js/main.89cc2d2d.js.map",
     "317.b8b8b49e.chunk.js.map": "/Faltai/static/js/317.b8b8b49e.chunk.js.map",
     "693.86c24618.chunk.js.map": "/Faltai/static/js/693.86c24618.chunk.js.map",
     "282.e7a125dc.chunk.js.map": "/Faltai/static/js/282.e7a125dc.chunk.js.map",
@@ -23,7 +23,7 @@
     "58.6b86817b.chunk.js.map": "/Faltai/static/js/58.6b86817b.chunk.js.map"
   },
   "entrypoints": [
-    "static/css/main.4f39ac4c.css",
-    "static/js/main.6ce06b8e.js"
+    "static/css/main.efeeb446.css",
+    "static/js/main.89cc2d2d.js"
   ]
 }
