@@ -1,67 +1,73 @@
-import React, { useState } from 'react';
-import { FaTimes, FaPlus, FaClipboardCheck, FaBook } from 'react-icons/fa';
-import { auth, db } from '../firebase';
-import { doc, updateDoc } from 'firebase/firestore';
+import React, { useState, useEffect } from 'react';
+import { FaTimes, FaPlus } from 'react-icons/fa';
+import { useMaterias } from '../contexts/MateriasContext';
+import { useError } from '../contexts/ErrorContext';
 
-function EditMateriaModal({
-  setEditModalOpen,
-  editIndex,
-  materias,
-  setMaterias,
-  isOnline
-}) {
-  const [nome, setNome] = useState(materias[editIndex].nome);
-  const [horas, setHoras] = useState(materias[editIndex].horas.toString());
-  const [pesoFalta, setPesoFalta] = useState(materias[editIndex].pesoFalta.toString());
-  const [avaliacoes, setAvaliacoes] = useState(materias[editIndex].avaliacoes || []);
+function EditMateriaModal({ setEditModalOpen, editIndex }) {
+  const { materias, editarMateria } = useMaterias();
+  const { addError, addSuccess } = useError();
+  
+  const [nome, setNome] = useState('');
+  const [horas, setHoras] = useState('');
+  const [pesoFalta, setPesoFalta] = useState('1');
+  const [avaliacoes, setAvaliacoes] = useState([]);
   const [novaAvaliacao, setNovaAvaliacao] = useState({
-    tipo: 'PROVA',
+    tipo: '',
     data: '',
     descricao: ''
   });
   const [mostrarAvaliacoes, setMostrarAvaliacoes] = useState(false);
 
+  useEffect(() => {
+    if (editIndex !== null && materias && materias[editIndex]) {
+      const materia = materias[editIndex];
+      setNome(String(materia.nome || ''));
+      setHoras(String(materia.horas || ''));
+      setPesoFalta(String(materia.pesoFalta || '1'));
+      setAvaliacoes(Array.isArray(materia.avaliacoes) ? materia.avaliacoes : []);
+    }
+  }, [editIndex, materias]);
+
+  if (editIndex === null || !materias || !materias[editIndex]) {
+    return null;
+  }
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!nome || !horas) return;
-
-    const maxFaltas = Math.floor((parseInt(horas) * 0.25) / parseInt(pesoFalta));
-    const materiaAtualizada = {
-      ...materias[editIndex],
-      nome,
-      horas: parseInt(horas),
-      pesoFalta: parseInt(pesoFalta),
-      maxFaltas,
-      avaliacoes
-    };
-
-    const novasMaterias = [...materias];
-    novasMaterias[editIndex] = materiaAtualizada;
-    setMaterias(novasMaterias);
-
-    if (isOnline && auth.currentUser) {
-      try {
-        await updateDoc(doc(db, 'usuarios', auth.currentUser.uid), {
-          materias: novasMaterias
-        });
-      } catch (error) {
-        console.error('Erro ao salvar no Firebase:', error);
-      }
+    if (!nome || !horas) {
+      addError('Preencha todos os campos obrigatórios');
+      return;
     }
 
-    localStorage.setItem('materias', JSON.stringify(novasMaterias));
-    setEditModalOpen(false);
+    try {
+      const maxFaltas = Math.floor((parseInt(horas) * 0.25) / parseInt(pesoFalta));
+      const materiaAtualizada = {
+        ...materias[editIndex],
+        nome: String(nome),
+        horas: Number(horas),
+        pesoFalta: Number(pesoFalta),
+        maxFaltas: Number(maxFaltas),
+        avaliacoes: avaliacoes || []
+      };
+
+      await editarMateria(editIndex, materiaAtualizada);
+      addSuccess('Matéria editada com sucesso!');
+      setEditModalOpen(false);
+    } catch (error) {
+      addError('Erro ao salvar matéria');
+      console.error('Erro:', error);
+    }
   };
 
   const adicionarAvaliacao = () => {
-    if (!novaAvaliacao.data) {
-      alert('Selecione uma data para a avaliação');
+    if (!novaAvaliacao.tipo || !novaAvaliacao.data) {
+      addError('Tipo e data são obrigatórios para a avaliação');
       return;
     }
 
     setAvaliacoes(prev => [...prev, { ...novaAvaliacao, id: Date.now() }]);
     setNovaAvaliacao({
-      tipo: 'PROVA',
+      tipo: '',
       data: '',
       descricao: ''
     });
@@ -148,19 +154,20 @@ function EditMateriaModal({
             <>
               <div className="space-y-3 mb-4">
                 <div className="flex gap-2">
-                  <select
+                  <input
+                    type="text"
                     value={novaAvaliacao.tipo}
                     onChange={(e) => setNovaAvaliacao(prev => ({ ...prev, tipo: e.target.value }))}
                     className="px-3 py-2 border rounded-md"
-                  >
-                    <option value="PROVA">Prova</option>
-                    <option value="TRABALHO">Trabalho</option>
-                  </select>
+                    placeholder="Tipo (ex: Prova, Trabalho, Seminário)"
+                    required
+                  />
                   <input
                     type="date"
                     value={novaAvaliacao.data}
                     onChange={(e) => setNovaAvaliacao(prev => ({ ...prev, data: e.target.value }))}
                     className="flex-1 px-3 py-2 border rounded-md"
+                    required
                   />
                 </div>
                 <div className="flex gap-2">
@@ -188,11 +195,9 @@ function EditMateriaModal({
                     className="flex items-center justify-between bg-gray-50 p-2 rounded-md"
                   >
                     <div className="flex items-center space-x-2">
-                      {av.tipo === 'PROVA' ? (
-                        <FaClipboardCheck className="text-red-500" />
-                      ) : (
-                        <FaBook className="text-red-500" />
-                      )}
+                      <div className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs font-medium">
+                        {av.tipo}
+                      </div>
                       <div>
                         <p className="text-sm font-medium">
                           {new Date(av.data).toLocaleDateString('pt-BR')}

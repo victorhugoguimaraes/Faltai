@@ -81,26 +81,30 @@ function AvaliacoesCalendario({ materias, onClose }) {
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl">
-        <div className="p-4 border-b border-gray-100">
-          <div className="flex justify-between items-center">
-            <div className="flex items-center space-x-3">
-              <FaCalendarAlt className="text-blue-600 text-xl" />
-              <h2 className="text-xl font-semibold text-gray-800">
+    <div className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-[10000] p-0 sm:p-4">
+      <div className="bg-white w-full sm:max-w-4xl max-h-[90vh] overflow-y-auto rounded-t-3xl sm:rounded-2xl shadow-2xl">
+        <div className="sticky top-0 bg-white z-10 border-b border-gray-100">
+          <div className="sm:hidden flex justify-center pt-2 pb-1">
+            <div className="w-12 h-1.5 bg-gray-300 rounded-full"></div>
+          </div>
+          <div className="px-4 sm:px-6 py-3 sm:py-4 flex justify-between items-center gap-3">
+            <div className="flex items-center gap-3 min-w-0">
+              <FaCalendarAlt className="text-blue-600 text-lg sm:text-xl shrink-0" />
+              <h2 className="text-base sm:text-xl font-semibold text-gray-800 truncate">
                 Provas e Trabalhos
               </h2>
             </div>
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center gap-2">
               <button
                 onClick={() => setModalAberto(true)}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                className="px-3 py-2 sm:px-4 sm:py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
               >
                 Adicionar
               </button>
               <button
                 onClick={onClose}
                 className="p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-500"
+                aria-label="Fechar"
               >
                 <FaTimes />
               </button>
@@ -108,47 +112,60 @@ function AvaliacoesCalendario({ materias, onClose }) {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4">
-          <div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 px-4 sm:px-6 py-4">
+          <div className="overflow-x-auto">
             <Calendar
               tileContent={tileContent}
               tileClassName={tileClassName}
-              className="border-none shadow-none w-full"
+              className="border-none shadow-none w-full min-w-[320px]"
               locale="pt-BR"
+              next2Label={null}
+              prev2Label={null}
+              navigationLabel={({ date }) => {
+                const mes = date.toLocaleString('pt-BR', { month: 'long' });
+                const ano = date.toLocaleString('pt-BR', { year: 'numeric' });
+                return (
+                  <div className="flex items-center justify-center gap-2 min-w-0" title={`${mes} ${ano}`}>
+                    <span className="truncate text-sm sm:text-base font-semibold capitalize">{mes}</span>
+                    <span className="shrink-0 text-sm sm:text-base font-semibold">{ano}</span>
+                  </div>
+                );
+              }}
             />
           </div>
 
-          <div className="bg-gray-50 rounded-lg p-4">
-            <h3 className="font-semibold text-gray-700 mb-4">Próximas Avaliações</h3>
+          <div className="bg-gray-50 rounded-lg p-3 sm:p-4">
+            <h3 className="font-semibold text-gray-700 mb-3 sm:mb-4">Próximas Avaliações</h3>
             <div className="space-y-3">
               {avaliacoes
                 .sort((a, b) => new Date(a.data) - new Date(b.data))
                 .map(avaliacao => (
                   <div
                     key={avaliacao.id}
-                    className="bg-white p-3 rounded-lg shadow-sm flex items-start justify-between"
+                    className="bg-white p-3 rounded-lg shadow-sm flex items-start justify-between gap-3"
                   >
-                    <div>
-                      <div className="flex items-center space-x-2">
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 min-w-0">
                         {avaliacao.tipo === 'PROVA' ? (
-                          <FaClipboardCheck className="text-red-500" />
+                          <FaClipboardCheck className="text-red-500 shrink-0" />
                         ) : (
-                          <FaBook className="text-blue-500" />
+                          <FaBook className="text-blue-500 shrink-0" />
                         )}
-                        <span className="font-medium">{avaliacao.materia}</span>
+                        <span className="font-medium truncate">{avaliacao.materia}</span>
                       </div>
-                      <p className="text-sm text-gray-600 mt-1">
+                      <p className="text-xs sm:text-sm text-gray-600 mt-1">
                         {new Date(avaliacao.data).toLocaleDateString('pt-BR')}
                       </p>
                       {avaliacao.descricao && (
-                        <p className="text-sm text-gray-500 mt-1">
+                        <p className="text-xs sm:text-sm text-gray-500 mt-1 break-words">
                           {avaliacao.descricao}
                         </p>
                       )}
                     </div>
                     <button
                       onClick={() => removerAvaliacao(avaliacao.id)}
-                      className="text-gray-400 hover:text-red-500"
+                      className="text-gray-400 hover:text-red-500 shrink-0"
+                      aria-label="Remover"
                     >
                       <FaTimes />
                     </button>
@@ -161,19 +178,25 @@ function AvaliacoesCalendario({ materias, onClose }) {
 
       {/* Modal de Nova Avaliação */}
       {modalAberto && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold">Nova Avaliação</h3>
-              <button
-                onClick={() => setModalAberto(false)}
-                className="text-gray-500 hover:text-gray-700"
-              >
-                <FaTimes />
-              </button>
+        <div className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-[10001] p-0 sm:p-4">
+          <div className="bg-white w-full sm:max-w-md max-h-[85vh] overflow-y-auto rounded-t-2xl sm:rounded-xl shadow-xl">
+            <div className="sticky top-0 bg-white z-10 border-b px-4 sm:px-6 py-3">
+              <div className="sm:hidden flex justify-center pt-1 pb-1">
+                <div className="w-10 h-1.5 bg-gray-300 rounded-full"></div>
+              </div>
+              <div className="flex justify-between items-center">
+                <h3 className="text-base sm:text-lg font-semibold">Nova Avaliação</h3>
+                <button
+                  onClick={() => setModalAberto(false)}
+                  className="text-gray-500 hover:text-gray-700 p-2 rounded-lg"
+                  aria-label="Fechar"
+                >
+                  <FaTimes />
+                </button>
+              </div>
             </div>
 
-            <div className="space-y-4">
+            <div className="space-y-4 px-4 sm:px-6 py-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Tipo
@@ -207,7 +230,7 @@ function AvaliacoesCalendario({ materias, onClose }) {
                 <select
                   value={novaAvaliacao.materia}
                   onChange={(e) => setNovaAvaliacao(prev => ({ ...prev, materia: e.target.value }))}
-                  className="w-full px-3 py-2 border rounded-md"
+                  className="w-full px-3 py-2 border rounded-md text-sm"
                 >
                   <option value="">Selecione uma matéria</option>
                   {materias.map((materia, index) => (
@@ -226,7 +249,7 @@ function AvaliacoesCalendario({ materias, onClose }) {
                   type="date"
                   value={novaAvaliacao.data.toISOString().split('T')[0]}
                   onChange={(e) => setNovaAvaliacao(prev => ({ ...prev, data: new Date(e.target.value) }))}
-                  className="w-full px-3 py-2 border rounded-md"
+                  className="w-full px-3 py-2 border rounded-md text-sm"
                 />
               </div>
 
@@ -237,7 +260,7 @@ function AvaliacoesCalendario({ materias, onClose }) {
                 <textarea
                   value={novaAvaliacao.descricao}
                   onChange={(e) => setNovaAvaliacao(prev => ({ ...prev, descricao: e.target.value }))}
-                  className="w-full px-3 py-2 border rounded-md"
+                  className="w-full px-3 py-2 border rounded-md text-sm"
                   rows="3"
                   placeholder="Ex: Conteúdo da prova, detalhes do trabalho..."
                 />

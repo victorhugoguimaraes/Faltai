@@ -39,41 +39,80 @@ function GamificationSystem({ materias, onClose, onNotification }) {
   const [progresso, setProgresso] = useState(0);
   const [porcentagemPresenca, setPorcentagemPresenca] = useState(0);
 
-  const calcularNivel = () => {
-    if (materias.length === 0) return { nivel: 1, progresso: 0, porcentagem: 0 };
-
-    const totalFaltas = materias.reduce((sum, m) => sum + m.faltas, 0);
-    const totalMaxFaltas = materias.reduce((sum, m) => sum + m.maxFaltas, 0);
-    
-    if (totalMaxFaltas === 0) return { nivel: 1, progresso: 0, porcentagem: 0 };
-
-    const porcentagemPresenca = 100 - ((totalFaltas / totalMaxFaltas) * 100);
-    const progressoNormalizado = porcentagemPresenca / 100;
-
-    if (progressoNormalizado >= 0.8) return { nivel: 5, progresso: 100, porcentagem: porcentagemPresenca };
-    if (progressoNormalizado >= 0.6) return { nivel: 4, progresso: (progressoNormalizado - 0.6) * 500, porcentagem: porcentagemPresenca };
-    if (progressoNormalizado >= 0.4) return { nivel: 3, progresso: (progressoNormalizado - 0.4) * 500, porcentagem: porcentagemPresenca };
-    if (progressoNormalizado >= 0.2) return { nivel: 2, progresso: (progressoNormalizado - 0.2) * 500, porcentagem: porcentagemPresenca };
-    return { nivel: 1, progresso: progressoNormalizado * 500, porcentagem: porcentagemPresenca };
-  };
-
   useEffect(() => {
-    const { nivel: novoNivel, progresso: novoProgresso, porcentagem } = calcularNivel();
-    setNivel(novoNivel);
-    setProgresso(novoProgresso);
-    setPorcentagemPresenca(porcentagem);
-
-    // Verifica matérias com máximo de faltas atingido
-    materias.forEach(materia => {
-      if (materia.faltas >= materia.maxFaltas) {
-        onNotification({
-          titulo: '⚠️ Limite de Faltas',
-          mensagem: `Você atingiu o limite de faltas em ${materia.nome}`,
-          tipo: 'alerta'
-        });
+    const calcularNivel = () => {
+      if (!Array.isArray(materias) || materias.length === 0) {
+        return { nivel: 1, progresso: 0, porcentagem: 0 };
       }
-    });
-  }, [materias]);
+
+      const totalFaltas = materias.reduce((sum, m) => sum + (Number(m.faltas) || 0), 0);
+      const totalMaxFaltas = materias.reduce((sum, m) => sum + (Number(m.maxFaltas) || 0), 0);
+      
+      if (totalMaxFaltas === 0) return { nivel: 1, progresso: 0, porcentagem: 0 };
+
+      const porcentagemPresenca = Math.max(0, 100 - ((totalFaltas / totalMaxFaltas) * 100));
+      const progressoNormalizado = Math.min(1, Math.max(0, porcentagemPresenca / 100));
+
+      if (progressoNormalizado >= 0.8) return { 
+        nivel: 5, 
+        progresso: 100, 
+        porcentagem: Number(porcentagemPresenca.toFixed(1)) 
+      };
+      if (progressoNormalizado >= 0.6) return { 
+        nivel: 4, 
+        progresso: Number(((progressoNormalizado - 0.6) * 500).toFixed(1)), 
+        porcentagem: Number(porcentagemPresenca.toFixed(1)) 
+      };
+      if (progressoNormalizado >= 0.4) return { 
+        nivel: 3, 
+        progresso: Number(((progressoNormalizado - 0.4) * 500).toFixed(1)), 
+        porcentagem: Number(porcentagemPresenca.toFixed(1)) 
+      };
+      if (progressoNormalizado >= 0.2) return { 
+        nivel: 2, 
+        progresso: Number(((progressoNormalizado - 0.2) * 500).toFixed(1)), 
+        porcentagem: Number(porcentagemPresenca.toFixed(1)) 
+      };
+      return { 
+        nivel: 1, 
+        progresso: Number((progressoNormalizado * 500).toFixed(1)), 
+        porcentagem: Number(porcentagemPresenca.toFixed(1)) 
+      };
+    };
+
+    const { nivel: novoNivel, progresso: novoProgresso, porcentagem } = calcularNivel();
+    setNivel(Number(novoNivel) || 1);
+    setProgresso(Number(novoProgresso) || 0);
+    setPorcentagemPresenca(Number(porcentagem) || 0);
+
+    // Verifica matérias com máximo de faltas atingido (com controle de duplicatas)
+    if (Array.isArray(materias) && typeof onNotification === 'function') {
+      const notificacoesEnviadas = JSON.parse(localStorage.getItem('notificacoes_enviadas') || '[]');
+      const novasNotificacoes = [];
+      
+      materias.forEach((materia, index) => {
+        const faltas = Number(materia.faltas) || 0;
+        const maxFaltas = Number(materia.maxFaltas) || 0;
+        const nomeMateria = String(materia.nome || 'uma matéria');
+        const notificacaoId = `limite-faltas-${nomeMateria}-${index}`;
+        
+        if (faltas >= maxFaltas && maxFaltas > 0 && !notificacoesEnviadas.includes(notificacaoId)) {
+          onNotification({
+            titulo: '⚠️ Limite de Faltas',
+            mensagem: `Você atingiu o limite de faltas em ${nomeMateria}`,
+            tipo: 'alerta'
+          });
+          novasNotificacoes.push(notificacaoId);
+        }
+      });
+      
+      // Salva as notificações enviadas no localStorage para evitar duplicatas
+      if (novasNotificacoes.length > 0) {
+        const todasNotificacoes = [...notificacoesEnviadas, ...novasNotificacoes];
+        localStorage.setItem('notificacoes_enviadas', JSON.stringify(todasNotificacoes));
+      }
+    }
+  }, [materias, onNotification]);
 
   const nivelAtual = NIVEIS[nivel];
   const proximoNivel = NIVEIS[nivel + 1];
@@ -103,7 +142,7 @@ function GamificationSystem({ materias, onClose, onNotification }) {
             </div>
             <h3 className="text-lg font-semibold">{nivelAtual.nome}</h3>
             <p className="text-sm text-gray-600 mt-1">
-              Presença atual: {porcentagemPresenca.toFixed(1)}%
+              Presença atual: {Number(porcentagemPresenca).toFixed(1) || '0.0'}%
             </p>
             {proximoNivel && (
               <p className="text-sm text-gray-600 mt-1">
@@ -117,7 +156,7 @@ function GamificationSystem({ materias, onClose, onNotification }) {
               <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
                 <div
                   className={`h-full ${nivelAtual.cor} transition-all duration-500`}
-                  style={{ width: `${progresso}%` }}
+                  style={{ width: `${Number(progresso) || 0}%` }}
                 />
               </div>
               <div className="flex justify-between text-xs text-gray-500 mt-1">
