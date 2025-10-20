@@ -244,12 +244,6 @@ Este projeto está sob a licença MIT. Veja o arquivo [LICENSE](LICENSE) para ma
 - GitHub: [@victorhugoguimaraes](https://github.com/victorhugoguimaraes)
 - Repositório: [Faltai](https://github.com/victorhugoguimaraes/Faltai)
 
-## Agradecimentos
-
-- Comunidade React por ferramentas e bibliotecas incríveis
-- Firebase pela infraestrutura backend simplificada
-- Tailwind CSS pela produtividade no desenvolvimento de interfaces
-
 ---
 
 **Nota**: Esta aplicação foi desenvolvida para fins educacionais e de controle pessoal. O cálculo de faltas segue a regra geral de 25% da carga horária, mas sempre verifique as normas específicas da sua instituição de ensino.
