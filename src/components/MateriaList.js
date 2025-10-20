@@ -69,6 +69,35 @@ function MateriaList({ setEditModalOpen, setDeleteModalOpen, setEditIndex, setMa
       {materias.map((materia, index) => {
         const porcentagemFaltas = ((materia.faltas / materia.maxFaltas) * 100).toFixed(0);
         
+        // Sistema de cores progressivo: 5 níveis
+        const getBarColor = (percentage) => {
+          if (percentage <= 40) return 'bg-green-500'; // Muito seguro
+          if (percentage <= 60) return 'bg-lime-500'; // Seguro
+          if (percentage <= 75) return 'bg-yellow-500'; // Atenção
+          if (percentage <= 90) return 'bg-orange-500'; // Alerta
+          return 'bg-red-500'; // Crítico
+        };
+
+        const getBarBgColor = (percentage) => {
+          if (percentage <= 40) return 'bg-green-100';
+          if (percentage <= 60) return 'bg-lime-100';
+          if (percentage <= 75) return 'bg-yellow-100';
+          if (percentage <= 90) return 'bg-orange-100';
+          return 'bg-red-100';
+        };
+
+        const getTextColor = (percentage) => {
+          if (percentage <= 40) return 'text-green-700';
+          if (percentage <= 60) return 'text-lime-700';
+          if (percentage <= 75) return 'text-yellow-700';
+          if (percentage <= 90) return 'text-orange-700';
+          return 'text-red-700';
+        };
+
+        const barColor = getBarColor(porcentagemFaltas);
+        const barBgColor = getBarBgColor(porcentagemFaltas);
+        const textColor = getTextColor(porcentagemFaltas);
+        
         return (
           <div
             key={index}
@@ -111,16 +140,16 @@ function MateriaList({ setEditModalOpen, setDeleteModalOpen, setEditIndex, setMa
 
             <div className="space-y-3">
               <div className="flex-1">
-                <div className="h-1.5 sm:h-2 bg-gray-200 rounded-full overflow-hidden">
+                <div className={`h-1.5 sm:h-2 ${barBgColor} rounded-full overflow-hidden transition-colors duration-300`}>
                   <div
-                    className="h-full bg-primary-500 rounded-full transition-all duration-300"
+                    className={`h-full ${barColor} rounded-full transition-all duration-300`}
                     style={{ width: `${porcentagemFaltas}%` }}
                   />
                 </div>
               </div>
               
               <div className="flex items-center justify-between">
-                <span className="text-xs sm:text-sm font-medium text-neutral-700">
+                <span className={`text-xs sm:text-sm font-medium ${textColor} transition-colors duration-300`}>
                   {porcentagemFaltas}% utilizado
                 </span>
                 <div className="flex items-center gap-2">
