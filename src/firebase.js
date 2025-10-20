@@ -1,21 +1,45 @@
+/**
+ * @fileoverview Configuração e inicialização do Firebase
+ * Gerencia autenticação e banco de dados Firestore
+ */
+
 import { initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
-import { getAnalytics } from 'firebase/analytics';
 
+/**
+ * Configuração do Firebase utilizando variáveis de ambiente
+ * Fallback para valores demo caso as variáveis não estejam configuradas
+ */
 const firebaseConfig = {
-  apiKey: process.env.REACT_APP_FIREBASE_API_KEY,
-  authDomain: process.env.REACT_APP_FIREBASE_AUTH_DOMAIN,
-  projectId: process.env.REACT_APP_FIREBASE_PROJECT_ID,
-  storageBucket: process.env.REACT_APP_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.REACT_APP_FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.REACT_APP_FIREBASE_APP_ID,
-  measurementId: process.env.REACT_APP_FIREBASE_MEASUREMENT_ID
+  apiKey: process.env.REACT_APP_FIREBASE_API_KEY || "demo-key",
+  authDomain: process.env.REACT_APP_FIREBASE_AUTH_DOMAIN || "demo-project.firebaseapp.com",
+  projectId: process.env.REACT_APP_FIREBASE_PROJECT_ID || "demo-project",
+  storageBucket: process.env.REACT_APP_FIREBASE_STORAGE_BUCKET || "demo-project.appspot.com",
+  messagingSenderId: process.env.REACT_APP_FIREBASE_MESSAGING_SENDER_ID || "123456789",
+  appId: process.env.REACT_APP_FIREBASE_APP_ID || "1:123456789:web:demo",
 };
 
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
-const analytics = getAnalytics(app);
+let app, auth, db;
 
-export { auth, db, analytics };
+try {
+  // Verifica se as credenciais reais do Firebase foram fornecidas
+  if (process.env.REACT_APP_FIREBASE_API_KEY && process.env.REACT_APP_FIREBASE_API_KEY !== "demo-key") {
+    // Inicializa o Firebase com as credenciais reais
+    app = initializeApp(firebaseConfig);
+    auth = getAuth(app); // Instância de autenticação
+    db = getFirestore(app); // Instância do Firestore
+  } else {
+    // Modo local sem Firebase
+    console.warn('Firebase não configurado - rodando em modo local');
+    auth = null;
+    db = null;
+  }
+} catch (error) {
+  console.error('Erro ao inicializar Firebase:', error);
+  auth = null;
+  db = null;
+}
+
+// Exporta instâncias do auth e database para uso em toda aplicação
+export { auth, db };

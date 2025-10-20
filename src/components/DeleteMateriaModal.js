@@ -1,11 +1,26 @@
 import React from 'react';
-import { deleteMateria } from '../services/materiaService';
+import { useMaterias } from '../contexts/MateriasContext';
+import { useError } from '../contexts/ErrorContext';
 
-function DeleteMateriaModal({ setDeleteModalOpen, materiaToDelete, materias, setMaterias, isOnline }) {
+function DeleteMateriaModal({ setDeleteModalOpen, materiaToDelete }) {
+  const { materias, excluirMateria } = useMaterias();
+  const { addError, addSuccess } = useError();
+
+  if (materiaToDelete === null || !Array.isArray(materias) || !materias[materiaToDelete]) {
+    return null;
+  }
+
+  const materia = materias[materiaToDelete];
+  
   const handleDeleteMateria = async () => {
-    const novasMaterias = await deleteMateria(materiaToDelete, materias, isOnline);
-    setMaterias(novasMaterias);
-    setDeleteModalOpen(false);
+    try {
+      await excluirMateria(materiaToDelete);
+      addSuccess('Matéria excluída com sucesso!');
+      setDeleteModalOpen(false);
+    } catch (error) {
+      addError('Erro ao excluir matéria');
+      console.error('Erro:', error);
+    }
   };
 
   return (
@@ -13,7 +28,7 @@ function DeleteMateriaModal({ setDeleteModalOpen, materiaToDelete, materias, set
       <div className="bg-white p-4 sm:p-6 rounded-2xl shadow-lg w-full max-w-xs sm:max-w-sm">
         <h2 className="text-lg sm:text-xl font-bold mb-3 sm:mb-4 text-blue-700">Confirmação</h2>
         <p className="text-xs sm:text-sm text-gray-600 mb-3 sm:mb-4">
-          Deseja excluir "{materias[materiaToDelete]?.nome}"? Ação irreversível.
+          Deseja excluir "{String(materia?.nome || 'Esta matéria')}"? Ação irreversível.
         </p>
         <div className="flex justify-end gap-2">
           <button

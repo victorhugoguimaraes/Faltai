@@ -61,35 +61,49 @@ function CalendarModal({ materia, materias, setMaterias, isOnline, onClose }) {
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white p-4 sm:p-6 rounded-3xl shadow-xl w-[320px] sm:w-[360px] max-w-sm border border-blue-200 transition-all duration-300">
-        <div className="flex justify-between items-center mb-4">
-          <h3 className="text-xl sm:text-2xl font-bold text-blue-700 text-center flex-grow">
-            Faltas de {materia.nome}
-          </h3>
-          <button
-            className="text-gray-500 hover:text-gray-700 text-2xl font-bold transition-colors duration-200"
-            onClick={onClose}
-          >
-            ×
-          </button>
+    <div className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-[10000] p-0 sm:p-4">
+      <div className="bg-white w-full sm:w-[360px] max-h-[90vh] overflow-y-auto rounded-t-3xl sm:rounded-3xl shadow-xl border border-blue-200 transition-all duration-300">
+        <div className="sticky top-0 bg-white z-10">
+          <div className="sm:hidden flex justify-center pt-2 pb-1">
+            <div className="w-12 h-1.5 bg-gray-300 rounded-full"></div>
+          </div>
+          <div className="flex justify-between items-center gap-3 px-4 sm:px-6 py-3 sm:py-4 border-b">
+            <h3 className="text-base sm:text-2xl font-bold text-blue-700 text-center flex-grow truncate">
+              Faltas de {materia.nome}
+            </h3>
+            <button
+              className="text-gray-500 hover:text-gray-700 text-2xl font-bold transition-colors duration-200 shrink-0"
+              onClick={onClose}
+              aria-label="Fechar"
+            >
+              ×
+            </button>
+          </div>
         </div>
-        <div className="bg-blue-50 p-4 rounded-xl shadow-inner">
-          <Calendar
-            onClickDay={handleDateClick}
-            tileClassName={tileClassName}
-            tileContent={tileContent}
-            className="w-full border-none text-sm font-medium text-gray-700"
-            value={selectedDate}
-            minDetail="month"
-            next2Label={null}
-            prev2Label={null}
-            navigationLabel={({ date }) => (
-              <span className="text-lg font-semibold text-blue-600">
-                {date.toLocaleString('default', { month: 'long', year: 'numeric' })}
-              </span>
-            )}
-          />
+        <div className="bg-blue-50 p-4 rounded-t-xl sm:rounded-xl shadow-inner">
+          <div className="overflow-x-auto">
+            <Calendar
+              onClickDay={handleDateClick}
+              tileClassName={tileClassName}
+              tileContent={tileContent}
+              className="w-full min-w-[320px] border-none text-sm font-medium text-gray-700"
+              value={selectedDate}
+              minDetail="month"
+              next2Label={null}
+              prev2Label={null}
+              locale="pt-BR"
+              navigationLabel={({ date }) => {
+                const mes = date.toLocaleString('pt-BR', { month: 'long' });
+                const ano = date.toLocaleString('pt-BR', { year: 'numeric' });
+                return (
+                  <div className="flex items-center justify-center gap-2 min-w-0" title={`${mes} ${ano}`}>
+                    <span className="truncate text-base sm:text-lg font-semibold capitalize">{mes}</span>
+                    <span className="shrink-0 text-base sm:text-lg font-semibold">{ano}</span>
+                  </div>
+                );
+              }}
+            />
+          </div>
           <div className="mt-4 text-xs text-gray-600 text-center">
             Clique para adicionar/remover faltas ({materia.faltas}/{materia.maxFaltas})
           </div>

@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
 import { FaEdit, FaTrash, FaCalendarAlt, FaPlus, FaMinus } from 'react-icons/fa';
-import { auth, db } from '../firebase';
-import { doc, updateDoc } from 'firebase/firestore';
+import { useMaterias } from '../contexts/MateriasContext';
+import { useError } from '../contexts/ErrorContext';
 import FaltaiCalendar from './FaltaiCalendar';
 
-function MateriaList({ materias, setMaterias, setEditModalOpen, setDeleteModalOpen, setEditIndex, setMateriaToDelete, isOnline }) {
+function MateriaList({ setEditModalOpen, setDeleteModalOpen, setEditIndex, setMateriaToDelete }) {
+  const { materias, atualizarFaltas } = useMaterias();
+  const { addError } = useError();
   const [selectedMateria, setSelectedMateria] = useState(null);
   const [calendarOpen, setCalendarOpen] = useState(false);
 
@@ -14,46 +16,26 @@ function MateriaList({ materias, setMaterias, setEditModalOpen, setDeleteModalOp
 
     if (novasFaltas < 0) return;
     if (novasFaltas > materia.maxFaltas) {
-      alert('Número máximo de faltas atingido!');
+      addError('Número máximo de faltas atingido!');
       return;
     }
 
-    const novasMaterias = [...materias];
     const hoje = new Date().toISOString().split('T')[0];
+    let novasDatasFaltas = [...(materia.datasFaltas || [])];
 
     if (delta > 0) {
-      if (!novasMaterias[index].datasFaltas) {
-        novasMaterias[index].datasFaltas = [];
-      }
       for (let i = 0; i < delta; i++) {
-        novasMaterias[index].datasFaltas.push(hoje);
+        novasDatasFaltas.push(hoje);
       }
-    } 
-    else if (delta < 0) {
-      if (novasMaterias[index].datasFaltas && novasMaterias[index].datasFaltas.length > 0) {
-        novasMaterias[index].datasFaltas.pop();
-      }
+    } else if (delta < 0 && novasDatasFaltas.length > 0) {
+      novasDatasFaltas.pop();
     }
 
-    novasMaterias[index] = {
-      ...materia,
-      faltas: novasFaltas,
-      datasFaltas: novasMaterias[index].datasFaltas || []
-    };
-
-    setMaterias(novasMaterias);
-
-    if (isOnline && auth.currentUser) {
-      try {
-        await updateDoc(doc(db, 'usuarios', auth.currentUser.uid), {
-          materias: novasMaterias
-        });
-      } catch (error) {
-        console.error('Erro ao atualizar faltas:', error);
-      }
+    try {
+      await atualizarFaltas(index, novasFaltas, novasDatasFaltas);
+    } catch (error) {
+      addError('Erro ao atualizar faltas');
     }
-
-    localStorage.setItem('materias', JSON.stringify(novasMaterias));
   };
 
   const handleEdit = (index) => {
@@ -66,107 +48,98 @@ function MateriaList({ materias, setMaterias, setEditModalOpen, setDeleteModalOp
     setDeleteModalOpen(true);
   };
 
-  const handleCalendarClick = (index) => {
-    setSelectedMateria(index);
+  const openCalendar = (materia) => {
+    setSelectedMateria(materias.findIndex(m => m === materia));
     setCalendarOpen(true);
   };
 
-  const calcularPorcentagemFaltas = (materia) => {
-    return ((materia.faltas / materia.maxFaltas) * 100).toFixed(0);
-  };
-
-  const getStatusColor = (porcentagem) => {
-    if (porcentagem >= 100) return 'bg-red-500';
-    if (porcentagem >= 75) return 'bg-yellow-500';
-    return 'bg-green-500';
-  };
+  if (materias.length === 0) {
+    return (
+      <div className="text-center py-8">
+        <p className="text-neutral-600">Nenhuma matéria cadastrada</p>
+        <p className="text-sm text-neutral-500 mt-2">
+          Adicione uma matéria para começar!
+        </p>
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3 sm:space-y-4">
       {materias.map((materia, index) => {
-        const porcentagemFaltas = calcularPorcentagemFaltas(materia);
-        const statusColor = getStatusColor(porcentagemFaltas);
-        const proximasAvaliacoes = (materia.avaliacoes || [])
-          .filter(av => new Date(av.data) >= new Date())
-          .sort((a, b) => new Date(a.data) - new Date(b.data))
-          .slice(0, 2);
-
+        const porcentagemFaltas = ((materia.faltas / materia.maxFaltas) * 100).toFixed(0);
+        
         return (
           <div
             key={index}
-            className="bg-white rounded-lg shadow-sm p-4 space-y-3"
+            className="bg-white rounded-xl p-3 sm:p-6 shadow-soft hover-lift border border-neutral-100/50"
           >
-            <div className="flex justify-between items-start">
-              <div>
-                <h3 className="text-lg font-semibold text-gray-800">
+            <div className="flex justify-between items-center mb-4">
+              <div className="flex-1 min-w-0">
+                <h3 className="text-base sm:text-lg font-semibold text-neutral-800 truncate">
                   {materia.nome}
                 </h3>
-                <p className="text-sm text-gray-600">
-                  {materia.horas}h • {materia.faltas}/{materia.maxFaltas} faltas
+                <p className="text-xs sm:text-sm text-neutral-600">
+                  {materia.faltas}/{materia.maxFaltas} faltas ({materia.horas}h)
                 </p>
-                {proximasAvaliacoes.length > 0 && (
-                  <div className="mt-2 space-y-1">
-                    {proximasAvaliacoes.map((av, idx) => (
-                      <p key={idx} className="text-xs text-gray-500 flex items-center">
-                        {av.tipo === 'PROVA' ? (
-                          <span className="w-2 h-2 rounded-full bg-red-500 mr-2" />
-                        ) : (
-                          <span className="w-2 h-2 rounded-full bg-blue-500 mr-2" />
-                        )}
-                        {new Date(av.data).toLocaleDateString('pt-BR')}
-                        {av.descricao && ` - ${av.descricao}`}
-                      </p>
-                    ))}
-                  </div>
-                )}
               </div>
-              <div className="flex items-center space-x-2">
+              
+              <div className="flex gap-1 sm:gap-2 ml-2">
                 <button
-                  onClick={() => handleCalendarClick(index)}
-                  className="p-2 text-blue-600 hover:bg-blue-50 rounded-full transition-colors"
+                  onClick={() => openCalendar(materia)}
+                  className="p-1.5 sm:p-2 text-primary-600 hover:bg-primary-50 rounded-lg transition-colors"
+                  title="Ver calendário"
                 >
-                  <FaCalendarAlt />
+                  <FaCalendarAlt size={12} className="sm:w-3.5 sm:h-3.5" />
                 </button>
                 <button
                   onClick={() => handleEdit(index)}
-                  className="p-2 text-yellow-600 hover:bg-yellow-50 rounded-full transition-colors"
+                  className="p-1.5 sm:p-2 text-warning-600 hover:bg-warning-50 rounded-lg transition-colors"
+                  title="Editar"
                 >
-                  <FaEdit />
+                  <FaEdit size={12} className="sm:w-3.5 sm:h-3.5" />
                 </button>
                 <button
                   onClick={() => handleDelete(index)}
-                  className="p-2 text-red-600 hover:bg-red-50 rounded-full transition-colors"
+                  className="p-1.5 sm:p-2 text-danger-600 hover:bg-danger-50 rounded-lg transition-colors"
+                  title="Excluir"
                 >
-                  <FaTrash />
+                  <FaTrash size={12} className="sm:w-3.5 sm:h-3.5" />
                 </button>
               </div>
             </div>
 
-            <div className="flex items-center space-x-4">
+            <div className="space-y-3">
               <div className="flex-1">
-                <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+                <div className="h-1.5 sm:h-2 bg-gray-200 rounded-full overflow-hidden">
                   <div
-                    className={`h-full ${statusColor} transition-all duration-500`}
+                    className="h-full bg-primary-500 rounded-full transition-all duration-300"
                     style={{ width: `${porcentagemFaltas}%` }}
                   />
                 </div>
               </div>
-              <div className="flex items-center space-x-2">
-                <button
-                  onClick={() => handleFaltaChange(index, -1)}
-                  className="p-1 text-blue-600 hover:bg-blue-50 rounded-full transition-colors"
-                >
-                  <FaMinus />
-                </button>
-                <span className="text-sm font-medium text-gray-600">
-                  {porcentagemFaltas}%
+              
+              <div className="flex items-center justify-between">
+                <span className="text-xs sm:text-sm font-medium text-neutral-700">
+                  {porcentagemFaltas}% utilizado
                 </span>
-                <button
-                  onClick={() => handleFaltaChange(index, 1)}
-                  className="p-1 text-blue-600 hover:bg-blue-50 rounded-full transition-colors"
-                >
-                  <FaPlus />
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => handleFaltaChange(index, -1)}
+                    disabled={materia.faltas <= 0}
+                    className="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center bg-gray-100 text-gray-600 hover:bg-gray-200 rounded-full disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    title="Diminuir faltas"
+                  >
+                    <FaMinus size={10} className="sm:w-3 sm:h-3" />
+                  </button>
+                  <button
+                    onClick={() => handleFaltaChange(index, 1)}
+                    className="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center bg-primary-500 text-white hover:bg-primary-600 rounded-full transition-colors"
+                    title="Adicionar falta"
+                  >
+                    <FaPlus size={10} className="sm:w-3 sm:h-3" />
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -175,9 +148,6 @@ function MateriaList({ materias, setMaterias, setEditModalOpen, setDeleteModalOp
 
       {calendarOpen && selectedMateria !== null && (
         <FaltaiCalendar
-          materias={materias}
-          setMaterias={setMaterias}
-          isOnline={isOnline}
           selectedMateria={selectedMateria}
           onClose={() => setCalendarOpen(false)}
         />

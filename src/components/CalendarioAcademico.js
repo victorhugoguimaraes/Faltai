@@ -6,9 +6,7 @@ import {
   FaClipboardCheck, 
   FaBell, 
   FaTimes,
-  FaGraduationCap,
-  FaClock,
-  FaExclamationTriangle
+  FaGraduationCap
 } from 'react-icons/fa';
 
 const TIPOS_EVENTOS = {
@@ -121,28 +119,31 @@ function CalendarioAcademico({ materias, setMaterias, isOnline }) {
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl">
-        <div className="p-4 border-b border-gray-100">
-          <div className="flex justify-between items-center">
-            <div className="flex items-center space-x-3">
-              <FaCalendarAlt className="text-blue-600 text-xl" />
-              <h2 className="text-xl font-semibold text-gray-800">
+    <div className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-[10000] p-0 sm:p-4">
+      <div className="bg-white w-full sm:max-w-4xl max-h-[90vh] overflow-y-auto rounded-t-3xl sm:rounded-2xl shadow-2xl">
+        <div className="sticky top-0 bg-white z-10 border-b border-gray-100">
+          <div className="sm:hidden flex justify-center pt-2 pb-1">
+            <div className="w-12 h-1.5 bg-gray-300 rounded-full"></div>
+          </div>
+          <div className="px-4 sm:px-6 py-3 sm:py-4 flex justify-between items-center gap-3">
+            <div className="flex items-center gap-3 min-w-0">
+              <FaCalendarAlt className="text-blue-600 text-lg sm:text-xl shrink-0" />
+              <h2 className="text-base sm:text-xl font-semibold text-gray-800 truncate">
                 Calendário Acadêmico
               </h2>
             </div>
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center gap-2 sm:gap-4">
               <select
                 value={viewMode}
                 onChange={(e) => setViewMode(e.target.value)}
-                className="px-3 py-1 border rounded-md"
+                className="px-3 py-1 border rounded-md text-sm sm:text-base"
               >
                 <option value="mes">Mensal</option>
                 <option value="semana">Semanal</option>
               </select>
               <button
                 onClick={() => setModalAberto(true)}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                className="px-3 py-2 sm:px-4 sm:py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
               >
                 Novo Evento
               </button>
@@ -150,25 +151,39 @@ function CalendarioAcademico({ materias, setMaterias, isOnline }) {
           </div>
         </div>
 
-        <div className="p-4">
-          <Calendar
-            onChange={setSelectedDate}
-            value={selectedDate}
-            onClickDay={handleDateClick}
-            tileContent={tileContent}
-            tileClassName={tileClassName}
-            view={viewMode === 'semana' ? 'week' : 'month'}
-            className="border-none shadow-none w-full"
-            locale="pt-BR"
-          />
+        <div className="px-4 sm:px-6 py-4">
+          <div className="overflow-x-auto">
+            <Calendar
+              onChange={setSelectedDate}
+              value={selectedDate}
+              onClickDay={handleDateClick}
+              tileContent={tileContent}
+              tileClassName={tileClassName}
+              view={viewMode === 'semana' ? 'week' : 'month'}
+              className="border-none shadow-none w-full min-w-[320px]"
+              locale="pt-BR"
+              next2Label={null}
+              prev2Label={null}
+              navigationLabel={({ date }) => {
+                const mes = date.toLocaleString('pt-BR', { month: 'long' });
+                const ano = date.toLocaleString('pt-BR', { year: 'numeric' });
+                return (
+                  <div className="flex items-center justify-center gap-2 min-w-0" title={`${mes} ${ano}`}>
+                    <span className="truncate text-sm sm:text-base font-semibold capitalize">{mes}</span>
+                    <span className="shrink-0 text-sm sm:text-base font-semibold">{ano}</span>
+                  </div>
+                );
+              }}
+            />
+          </div>
         </div>
 
-        <div className="p-4 border-t border-gray-100">
-          <div className="flex items-center justify-center space-x-4">
+        <div className="px-4 sm:px-6 py-4 border-t border-gray-100">
+          <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2">
             {Object.entries(TIPOS_EVENTOS).map(([key, { nome, cor, icone }]) => (
-              <div key={key} className="flex items-center space-x-2">
-                {icone}
-                <span className="text-sm text-gray-600">{nome}</span>
+              <div key={key} className="flex items-center gap-2 min-w-0">
+                <div className="shrink-0">{icone}</div>
+                <span className="text-xs sm:text-sm text-gray-600 truncate">{nome}</span>
               </div>
             ))}
           </div>
@@ -177,19 +192,25 @@ function CalendarioAcademico({ materias, setMaterias, isOnline }) {
 
       {/* Modal de Novo Evento */}
       {modalAberto && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold">Novo Evento</h3>
-              <button
-                onClick={() => setModalAberto(false)}
-                className="text-gray-500 hover:text-gray-700"
-              >
-                <FaTimes />
-              </button>
+        <div className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-[10001] p-0 sm:p-4">
+          <div className="bg-white w-full sm:max-w-md max-h-[85vh] overflow-y-auto rounded-t-2xl sm:rounded-xl shadow-xl">
+            <div className="sticky top-0 bg-white z-10 border-b px-4 sm:px-6 py-3">
+              <div className="sm:hidden flex justify-center pt-1 pb-1">
+                <div className="w-10 h-1.5 bg-gray-300 rounded-full"></div>
+              </div>
+              <div className="flex justify-between items-center">
+                <h3 className="text-base sm:text-lg font-semibold">Novo Evento</h3>
+                <button
+                  onClick={() => setModalAberto(false)}
+                  className="text-gray-500 hover:text-gray-700 p-2 rounded-lg"
+                  aria-label="Fechar"
+                >
+                  <FaTimes />
+                </button>
+              </div>
             </div>
 
-            <div className="space-y-4">
+            <div className="space-y-4 px-4 sm:px-6 py-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Título
@@ -198,7 +219,7 @@ function CalendarioAcademico({ materias, setMaterias, isOnline }) {
                   type="text"
                   value={novoEvento.titulo}
                   onChange={(e) => setNovoEvento(prev => ({ ...prev, titulo: e.target.value }))}
-                  className="w-full px-3 py-2 border rounded-md"
+                  className="w-full px-3 py-2 border rounded-md text-sm"
                   placeholder="Nome do evento"
                 />
               </div>
@@ -210,7 +231,7 @@ function CalendarioAcademico({ materias, setMaterias, isOnline }) {
                 <select
                   value={novoEvento.tipo}
                   onChange={(e) => setNovoEvento(prev => ({ ...prev, tipo: e.target.value }))}
-                  className="w-full px-3 py-2 border rounded-md"
+                  className="w-full px-3 py-2 border rounded-md text-sm"
                 >
                   {Object.entries(TIPOS_EVENTOS).map(([key, { nome }]) => (
                     <option key={key} value={key}>
@@ -227,7 +248,7 @@ function CalendarioAcademico({ materias, setMaterias, isOnline }) {
                 <select
                   value={novoEvento.materia}
                   onChange={(e) => setNovoEvento(prev => ({ ...prev, materia: e.target.value }))}
-                  className="w-full px-3 py-2 border rounded-md"
+                  className="w-full px-3 py-2 border rounded-md text-sm"
                 >
                   <option value="">Selecione uma matéria</option>
                   {materias.map((materia, index) => (
@@ -246,7 +267,7 @@ function CalendarioAcademico({ materias, setMaterias, isOnline }) {
                   type="date"
                   value={novoEvento.data.toISOString().split('T')[0]}
                   onChange={(e) => setNovoEvento(prev => ({ ...prev, data: new Date(e.target.value) }))}
-                  className="w-full px-3 py-2 border rounded-md"
+                  className="w-full px-3 py-2 border rounded-md text-sm"
                 />
               </div>
 
@@ -258,7 +279,7 @@ function CalendarioAcademico({ materias, setMaterias, isOnline }) {
                   type="time"
                   value={novoEvento.horario}
                   onChange={(e) => setNovoEvento(prev => ({ ...prev, horario: e.target.value }))}
-                  className="w-full px-3 py-2 border rounded-md"
+                  className="w-full px-3 py-2 border rounded-md text-sm"
                 />
               </div>
 
@@ -269,7 +290,7 @@ function CalendarioAcademico({ materias, setMaterias, isOnline }) {
                 <textarea
                   value={novoEvento.descricao}
                   onChange={(e) => setNovoEvento(prev => ({ ...prev, descricao: e.target.value }))}
-                  className="w-full px-3 py-2 border rounded-md"
+                  className="w-full px-3 py-2 border rounded-md text-sm"
                   rows="3"
                   placeholder="Detalhes do evento"
                 />

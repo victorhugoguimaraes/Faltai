@@ -1,9 +1,11 @@
 import React from 'react';
+import { useAuth } from '../contexts/AuthContext';
 
-function AnonymousModal({ setAnonymousModalOpen, setLogado, setIsOnline }) {
+function AnonymousModal({ setAnonymousModalOpen }) {
+  const { loginAnonymously } = useAuth();
+
   const handleAnonymousLogin = () => {
-    setLogado(true);
-    setIsOnline(false); 
+    loginAnonymously();
     setAnonymousModalOpen(false);
   };
 

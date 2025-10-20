@@ -1,32 +1,30 @@
 import React, { useState } from 'react';
-import { loginWithEmail, loginWithGoogle } from '../services/authService';
+import { useAuth } from '../contexts/AuthContext';
+import { useError } from '../contexts/ErrorContext';
 
-function LoginModal({ setLoginModalOpen, setLogado, setIsOnline }) {
+function LoginModal({ setLoginModalOpen }) {
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
-  const [erro, setErro] = useState('');
+  const { login, loginWithGoogle } = useAuth();
+  const { addError } = useError();
 
   const handleLogin = async () => {
-    const result = await loginWithEmail(email, senha);
+    const result = await login(email, senha);
     if (result.success) {
-      setLogado(true);
-      setIsOnline(true);
       setLoginModalOpen(false);
       setEmail('');
       setSenha('');
     } else {
-      setErro(result.message);
+      addError(result.message);
     }
   };
 
   const handleGoogleLogin = async () => {
     const result = await loginWithGoogle();
     if (result.success) {
-      setLogado(true);
-      setIsOnline(true);
       setLoginModalOpen(false);
     } else {
-      setErro(result.message);
+      addError(result.message);
     }
   };
 
@@ -34,7 +32,6 @@ function LoginModal({ setLoginModalOpen, setLogado, setIsOnline }) {
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white p-4 sm:p-6 rounded-2xl shadow-lg w-full max-w-xs sm:max-w-sm">
         <h2 className="text-lg sm:text-xl font-bold mb-3 sm:mb-4 text-blue-700">Login</h2>
-        {erro && <p className="text-red-500 mb-3 sm:mb-4 text-center text-xs sm:text-sm">{erro}</p>}
         <input
           className="w-full p-2 sm:p-3 mb-3 sm:mb-4 border border-blue-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-blue-50 placeholder-gray-500 text-xs sm:text-sm"
           placeholder="Email"
