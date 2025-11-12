@@ -1,7 +1,11 @@
 export const registerServiceWorker = () => {
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-      navigator.serviceWorker.register('/sw/sw.js')
+      // Use PUBLIC_URL so the path is correct when hosted under a subpath (e.g. GitHub Pages)
+      const publicUrl = process.env.PUBLIC_URL || '';
+      // Ensure there is no double slash when PUBLIC_URL is '/'
+      const swPath = `${publicUrl.replace(/\/$/, '')}/sw/sw.js`;
+      navigator.serviceWorker.register(swPath)
         .then((registration) => {
           console.log('Service Worker registrado com sucesso:', registration.scope);
         })
@@ -33,10 +37,12 @@ export const requestNotificationPermission = async () => {
 // Enviar notificação local
 export const sendLocalNotification = (title, options = {}) => {
   if (Notification.permission === 'granted') {
+    const publicUrl = process.env.PUBLIC_URL || '';
+    const iconPath = `${publicUrl.replace(/\/$/, '')}/icon-192.png`;
     new Notification(title, {
       body: options.body || 'Nova notificação do Faltaí',
-      icon: '/icon-192.png',
-      badge: '/icon-192.png',
+      icon: iconPath,
+      badge: iconPath,
       ...options
     });
   }
