@@ -364,15 +364,4 @@ console.log('Online:', isOnline);
 console.log(firebase.auth().currentUser);
 ```
 
----
 
-## 📞 Suporte
-
-Para dúvidas ou problemas, consulte:
-- Código fonte: Comentários inline em cada arquivo
-- Firebase Docs: https://firebase.google.com/docs
-- React Docs: https://react.dev
-
----
-
-**Última atualização:** Outubro 2025
