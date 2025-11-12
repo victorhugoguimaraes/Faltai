@@ -1,0 +1,29 @@
+{
+  "files": {
+    "main.css": "/Faltai/static/css/main.efeeb446.css",
+    "main.js": "/Faltai/static/js/main.e220f0d8.js",
+    "static/js/317.b8b8b49e.chunk.js": "/Faltai/static/js/317.b8b8b49e.chunk.js",
+    "static/js/693.86c24618.chunk.js": "/Faltai/static/js/693.86c24618.chunk.js",
+    "static/js/282.e7a125dc.chunk.js": "/Faltai/static/js/282.e7a125dc.chunk.js",
+    "static/js/81.0643e542.chunk.js": "/Faltai/static/js/81.0643e542.chunk.js",
+    "static/js/665.fa9e10c3.chunk.js": "/Faltai/static/js/665.fa9e10c3.chunk.js",
+    "static/js/407.261d950b.chunk.js": "/Faltai/static/js/407.261d950b.chunk.js",
+    "static/js/977.7ad3bb3e.chunk.js": "/Faltai/static/js/977.7ad3bb3e.chunk.js",
+    "static/js/58.6b86817b.chunk.js": "/Faltai/static/js/58.6b86817b.chunk.js",
+    "index.html": "/Faltai/index.html",
+    "main.efeeb446.css.map": "/Faltai/static/css/main.efeeb446.css.map",
+    "main.e220f0d8.js.map": "/Faltai/static/js/main.e220f0d8.js.map",
+    "317.b8b8b49e.chunk.js.map": "/Faltai/static/js/317.b8b8b49e.chunk.js.map",
+    "693.86c24618.chunk.js.map": "/Faltai/static/js/693.86c24618.chunk.js.map",
+    "282.e7a125dc.chunk.js.map": "/Faltai/static/js/282.e7a125dc.chunk.js.map",
+    "81.0643e542.chunk.js.map": "/Faltai/static/js/81.0643e542.chunk.js.map",
+    "665.fa9e10c3.chunk.js.map": "/Faltai/static/js/665.fa9e10c3.chunk.js.map",
+    "407.261d950b.chunk.js.map": "/Faltai/static/js/407.261d950b.chunk.js.map",
+    "977.7ad3bb3e.chunk.js.map": "/Faltai/static/js/977.7ad3bb3e.chunk.js.map",
+    "58.6b86817b.chunk.js.map": "/Faltai/static/js/58.6b86817b.chunk.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.efeeb446.css",
+    "static/js/main.e220f0d8.js"
+  ]
+}
