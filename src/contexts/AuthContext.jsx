@@ -74,9 +74,11 @@ export const AuthProvider = ({ children }) => {
         setLoading(true);
 
         try {
+          const storedOnlineState = getStorageValue(storageKeys.isOnline, false);
+          const nextIsOnline = Boolean(firebaseUser) || storedOnlineState;
           let userDocData = null;
 
-          if (firebaseUser && isOnline) {
+          if (firebaseUser) {
             const userDocRef = firestoreModule.doc(db, 'usuarios', firebaseUser.uid);
             const userDoc = await firestoreModule.getDoc(userDocRef);
             userDocData = userDoc.data();
@@ -84,7 +86,7 @@ export const AuthProvider = ({ children }) => {
 
           const nextState = resolveAuthState({
             firebaseUser,
-            isOnline,
+            isOnline: nextIsOnline,
             userDocData,
             offlineUser: getStorageValue(storageKeys.offlineUser, null)
           });

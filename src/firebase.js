@@ -45,9 +45,17 @@ export const getFirebaseServices = async () => {
       import('firebase/auth'),
       import('firebase/firestore')
     ])
-      .then(([authModule, firestoreModule]) => {
+      .then(async ([authModule, firestoreModule]) => {
         authInstance = authInstance || authModule.getAuth(app);
         dbInstance = dbInstance || firestoreModule.getFirestore(app);
+
+        if (typeof window !== 'undefined') {
+          try {
+            await authModule.setPersistence(authInstance, authModule.browserLocalPersistence);
+          } catch (error) {
+            console.warn('Não foi possível aplicar persistência local no Firebase Auth:', error);
+          }
+        }
 
         return {
           app,

@@ -17,6 +17,7 @@ export const getOfflineAuthState = () => {
 };
 
 export const persistOnlineSession = (user) => {
+  removeStorageValue(storageKeys.offlineUser);
   setStorageValue(storageKeys.isOnline, true);
   return {
     user,
