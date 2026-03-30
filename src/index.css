@@ -1,8 +1,9 @@
+@import './styles/tokens.css';
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=DM+Serif+Display:ital@0;1&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Poppins:wght@400;500;600;700&display=swap');
 @keyframes fadeIn {
   from {
     opacity: 0;
@@ -75,12 +76,12 @@
 }
 
 ::-webkit-scrollbar-thumb {
-  background: linear-gradient(180deg, #0ea5e9, #0284c7);
+  background: linear-gradient(180deg, #166534, #14532d);
   border-radius: 6px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(180deg, #0284c7, #075985);
+  background: linear-gradient(180deg, #14532d, #052e16);
 }
 
 .glass-effect {
@@ -89,8 +90,71 @@
   border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
+.bg-app-shell {
+  background:
+    radial-gradient(circle at top left, rgba(22, 101, 52, 0.09), transparent 26%),
+    radial-gradient(circle at top right, rgba(120, 53, 15, 0.08), transparent 22%),
+    linear-gradient(180deg, var(--app-bg-top) 0%, var(--app-bg-middle) 55%, var(--app-bg-bottom) 100%);
+}
+
+.app-shell-pattern {
+  background-image:
+    linear-gradient(rgba(24, 24, 27, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(24, 24, 27, 0.04) 1px, transparent 1px);
+  background-size: 32px 32px;
+  mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.7), transparent 90%);
+}
+
+.hero-surface {
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(250, 250, 249, 0.78));
+  border: 1px solid rgba(23, 23, 23, 0.07);
+  backdrop-filter: blur(16px);
+  box-shadow: 0 18px 50px rgba(24, 24, 27, 0.08);
+}
+
+.feature-card {
+  @apply rounded-[1.5rem] border border-stone-200/90 bg-white/90 p-5 shadow-soft backdrop-blur-xl transition-all duration-300 hover:-translate-y-0.5 hover:shadow-medium;
+}
+
+.feature-card__eyebrow {
+  @apply text-[11px] font-semibold uppercase tracking-[0.24em] text-emerald-800;
+}
+
+.feature-card__title {
+  @apply mt-3 font-display text-xl font-semibold text-stone-950;
+}
+
+.feature-card__text {
+  @apply mt-2 text-sm leading-6 text-stone-600;
+}
+
+.summary-chip {
+  @apply rounded-[1.35rem] border border-stone-200 bg-stone-50/90 px-4 py-3 shadow-soft backdrop-blur-xl;
+}
+
+.summary-chip__label {
+  @apply block text-[11px] font-semibold uppercase tracking-[0.22em] text-stone-500;
+}
+
+.summary-chip__value {
+  @apply mt-2 block font-display text-2xl font-bold text-stone-950;
+}
+
+.icon-button-shell {
+  @apply flex h-11 w-11 items-center justify-center rounded-2xl border border-stone-200 bg-white text-stone-600 shadow-soft transition-all duration-200 hover:-translate-y-0.5 hover:text-stone-950;
+}
+
+.icon-button-shell--danger {
+  @apply text-rose-600 hover:text-rose-700;
+}
+
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
 .gradient-text {
-  background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
+  background: linear-gradient(135deg, #166534 0%, #14532d 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -170,8 +234,95 @@ body {
   @apply font-sans antialiased bg-gradient-subtle min-h-screen;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  color: var(--shell-text);
 }
 
 h1, h2, h3, h4, h5, h6 {
   @apply font-display;
+}
+
+.faltai-calendar {
+  width: 100%;
+  border: none;
+  background: transparent;
+  font-family: Inter, sans-serif;
+}
+
+.faltai-calendar .react-calendar__navigation {
+  display: flex;
+  align-items: center;
+  margin-bottom: 1rem;
+  gap: 0.5rem;
+}
+
+.faltai-calendar .react-calendar__navigation button {
+  min-width: 2.75rem;
+  border-radius: 999px;
+  background: #f5f5f4;
+  color: #1c1917;
+  font-weight: 600;
+}
+
+.faltai-calendar .react-calendar__navigation button:enabled:hover {
+  background: #e7e5e4;
+}
+
+.faltai-calendar .react-calendar__navigation__label {
+  background: transparent !important;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.faltai-calendar .react-calendar__month-view__weekdays {
+  margin-bottom: 0.5rem;
+  text-transform: uppercase;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #78716c;
+}
+
+.faltai-calendar .react-calendar__month-view__weekdays__weekday {
+  padding: 0.5rem 0;
+}
+
+.faltai-calendar .react-calendar__month-view__weekdays__weekday abbr {
+  text-decoration: none;
+}
+
+.faltai-calendar .react-calendar__tile {
+  border-radius: 1rem;
+  padding: 0.85rem 0.25rem;
+  background: transparent;
+}
+
+.faltai-calendar .react-calendar__tile:enabled:hover {
+  background: #f5f5f4;
+}
+
+.faltai-calendar .react-calendar__tile--now {
+  background: #ecfdf5 !important;
+  color: #166534;
+}
+
+.faltai-calendar .react-calendar__tile--active {
+  background: #e7e5e4 !important;
+  color: #171717;
+}
+
+.faltai-calendar__tile--falta {
+  background: rgba(22, 101, 52, 0.1) !important;
+  color: #166534;
+  font-weight: 700;
+}
+
+.faltai-calendar__tile--avaliacao {
+  background: rgba(244, 63, 94, 0.12) !important;
+  color: #be123c;
+  font-weight: 700;
+}
+
+@media (max-width: 640px) {
+  .faltai-calendar .react-calendar__tile {
+    padding: 0.75rem 0.1rem;
+  }
 }

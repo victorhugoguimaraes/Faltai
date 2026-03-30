@@ -1,11 +1,26 @@
 // Service para gerenciar notificações push agendadas
+import { getPublicAssetPath } from '../utils/assets';
+import { getStorageValue, setStorageValue, storageKeys } from '../utils/storage';
+
+const getEvaluationLabel = (tipo) => {
+  if (tipo === 'PROVA') {
+    return 'prova';
+  }
+
+  if (tipo === 'TRABALHO') {
+    return 'entrega';
+  }
+
+  return 'compromisso';
+};
+
 class NotificationService {
   constructor() {
     this.scheduledNotifications = this.getScheduledNotifications();
     this.notificationTimeouts = [];
     this.dailyCheckTimer = null;
-    this.initializeNotifications();
-    this.startDailyCheck();
+    this.schedulerInterval = null;
+    this.initialized = false;
   }
 
     // Método para inicializar notificações na inicialização da aplicação
@@ -46,22 +61,12 @@ class NotificationService {
 
   // Carrega notificações salvas do localStorage
   getScheduledNotifications() {
-    try {
-      const stored = localStorage.getItem('scheduled_notifications');
-      return stored ? JSON.parse(stored) : [];
-    } catch (error) {
-      console.error('Erro ao carregar notificações agendadas:', error);
-      return [];
-    }
+    return getStorageValue(storageKeys.scheduledNotifications, []);
   }
 
   // Salva notificações agendadas no localStorage
   saveScheduledNotifications() {
-    try {
-      localStorage.setItem('scheduled_notifications', JSON.stringify(this.scheduledNotifications));
-    } catch (error) {
-      console.error('Erro ao salvar notificações agendadas:', error);
-    }
+    setStorageValue(storageKeys.scheduledNotifications, this.scheduledNotifications);
   }
 
   // Agenda notificações para uma avaliação
@@ -83,7 +88,7 @@ class NotificationService {
       // Só agenda se a data for futura
       if (notificationDate > hoje) {
         const notificationId = `eval-${avaliacao.id}-${dias}d`;
-        const tipoText = avaliacao.tipo === 'PROVA' ? 'prova' : 'trabalho';
+        const tipoText = getEvaluationLabel(avaliacao.tipo);
         
         const scheduledNotification = {
           id: notificationId,
@@ -204,8 +209,8 @@ class NotificationService {
     if ('Notification' in window && Notification.permission === 'granted') {
       const pushNotification = new Notification(notification.title, {
         body: notification.message,
-        icon: '/icon-192.png',
-        badge: '/icon-192.png',
+        icon: getPublicAssetPath('/icon-192.png'),
+        badge: getPublicAssetPath('/icon-192.png'),
         tag: notification.id,
         requireInteraction: true,
         silent: false,
@@ -236,6 +241,13 @@ class NotificationService {
       clearInterval(this.dailyCheckTimer);
       this.dailyCheckTimer = null;
     }
+
+    if (this.schedulerInterval) {
+      clearInterval(this.schedulerInterval);
+      this.schedulerInterval = null;
+    }
+
+    this.initialized = false;
   }
 
   // Remove notificação agendada
@@ -271,11 +283,19 @@ class NotificationService {
 
   // Inicializa o serviço
   init() {
+    if (this.initialized) {
+      this.updateNotificationScheduler();
+      return;
+    }
+
+    this.initialized = true;
+    this.initializeNotifications();
+    this.startDailyCheck();
     this.scheduleWeeklyReminder();
     this.updateNotificationScheduler();
     
     // Atualiza o scheduler a cada hora
-    setInterval(() => {
+    this.schedulerInterval = setInterval(() => {
       this.updateNotificationScheduler();
     }, 60 * 60 * 1000);
   }
@@ -283,6 +303,14 @@ class NotificationService {
   // Solicita permissão para notificações
   async requestPermission() {
     if ('Notification' in window) {
+      if (Notification.permission === 'granted') {
+        return true;
+      }
+
+      if (Notification.permission === 'denied') {
+        return false;
+      }
+
       const permission = await Notification.requestPermission();
       return permission === 'granted';
     }

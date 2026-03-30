@@ -3,8 +3,8 @@
  * Operações CRUD de matérias e controle de faltas com sincronização Firebase
  */
 
-import { auth, db } from '../firebase';
-import { doc, setDoc } from 'firebase/firestore';
+import { getFirebaseServices } from '../firebase';
+import { calculateMaxFaltas } from '../utils/validation';
 
 /**
  * Adiciona uma nova matéria
@@ -17,9 +17,7 @@ import { doc, setDoc } from 'firebase/firestore';
  * @returns {Promise<Array>} Array atualizado de matérias
  */
 export const addMateria = async (nome, horas, pesoFalta, materias, isOnline) => {
-  // Calcula máximo de faltas: 25% da carga horária dividido pelo peso
-  const baseMaxFaltas = Math.floor(horas * 0.25);
-  const maxFaltas = Math.floor(baseMaxFaltas / pesoFalta);
+  const maxFaltas = calculateMaxFaltas(horas, pesoFalta);
   
   const novasMaterias = [...materias, { 
     nome, 
@@ -31,8 +29,12 @@ export const addMateria = async (nome, horas, pesoFalta, materias, isOnline) => 
   }];
   
   // Sincroniza com Firebase se usuário estiver online
-  if (isOnline && auth.currentUser) {
-    await setDoc(doc(db, 'usuarios', auth.currentUser.uid), { materias: novasMaterias });
+  if (isOnline) {
+    const { auth, db } = await getFirebaseServices();
+    if (auth?.currentUser && db) {
+      const firestoreModule = await import('firebase/firestore');
+      await firestoreModule.setDoc(firestoreModule.doc(db, 'usuarios', auth.currentUser.uid), { materias: novasMaterias });
+    }
   }
   return novasMaterias;
 };
@@ -49,9 +51,9 @@ export const addMateria = async (nome, horas, pesoFalta, materias, isOnline) => 
  * @returns {Promise<Array>} Array atualizado de matérias
  */
 export const editMateria = async (index, nome, horas, pesoFalta, materias, isOnline) => {
-  // Recalcula base de faltas se horas mudaram, senão mantém atual
-  const baseMaxFaltas = horas ? Math.floor(horas * 0.25) : materias[index].maxFaltas * materias[index].pesoFalta;
-  const maxFaltas = Math.floor(baseMaxFaltas / (pesoFalta || materias[index].pesoFalta));
+  const horasAtualizadas = horas || materias[index].horas;
+  const pesoAtualizado = pesoFalta || materias[index].pesoFalta;
+  const maxFaltas = calculateMaxFaltas(horasAtualizadas, pesoAtualizado);
   
   const novasMaterias = [...materias];
   novasMaterias[index] = {
@@ -63,8 +65,12 @@ export const editMateria = async (index, nome, horas, pesoFalta, materias, isOnl
     datasFaltas: novasMaterias[index].datasFaltas || [],
   };
   
-  if (isOnline && auth.currentUser) {
-    await setDoc(doc(db, 'usuarios', auth.currentUser.uid), { materias: novasMaterias });
+  if (isOnline) {
+    const { auth, db } = await getFirebaseServices();
+    if (auth?.currentUser && db) {
+      const firestoreModule = await import('firebase/firestore');
+      await firestoreModule.setDoc(firestoreModule.doc(db, 'usuarios', auth.currentUser.uid), { materias: novasMaterias });
+    }
   }
   return novasMaterias;
 };
@@ -79,8 +85,12 @@ export const editMateria = async (index, nome, horas, pesoFalta, materias, isOnl
 export const deleteMateria = async (index, materias, isOnline) => {
   const novasMaterias = materias.filter((_, i) => i !== index);
   
-  if (isOnline && auth.currentUser) {
-    await setDoc(doc(db, 'usuarios', auth.currentUser.uid), { materias: novasMaterias });
+  if (isOnline) {
+    const { auth, db } = await getFirebaseServices();
+    if (auth?.currentUser && db) {
+      const firestoreModule = await import('firebase/firestore');
+      await firestoreModule.setDoc(firestoreModule.doc(db, 'usuarios', auth.currentUser.uid), { materias: novasMaterias });
+    }
   }
   return novasMaterias;
 };
@@ -107,8 +117,12 @@ export const addFalta = async (index, materias, isOnline) => {
       novasMaterias[index].datasFaltas.push(today);
     }
     
-    if (isOnline && auth.currentUser) {
-      await setDoc(doc(db, 'usuarios', auth.currentUser.uid), { materias: novasMaterias });
+    if (isOnline) {
+      const { auth, db } = await getFirebaseServices();
+      if (auth?.currentUser && db) {
+        const firestoreModule = await import('firebase/firestore');
+        await firestoreModule.setDoc(firestoreModule.doc(db, 'usuarios', auth.currentUser.uid), { materias: novasMaterias });
+      }
     }
   }
   return novasMaterias;
@@ -134,8 +148,12 @@ export const removeFalta = async (index, materias, isOnline) => {
       novasMaterias[index].datasFaltas.pop();
     }
     
-    if (isOnline && auth.currentUser) {
-      await setDoc(doc(db, 'usuarios', auth.currentUser.uid), { materias: novasMaterias });
+    if (isOnline) {
+      const { auth, db } = await getFirebaseServices();
+      if (auth?.currentUser && db) {
+        const firestoreModule = await import('firebase/firestore');
+        await firestoreModule.setDoc(firestoreModule.doc(db, 'usuarios', auth.currentUser.uid), { materias: novasMaterias });
+      }
     }
   }
   return novasMaterias;

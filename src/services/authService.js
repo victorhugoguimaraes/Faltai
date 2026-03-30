@@ -3,13 +3,13 @@
  * Gerencia login, registro, logout e recuperação de senha usando Firebase Auth
  */
 
-import { auth } from '../firebase';
-import { signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, signInWithRedirect, signInWithPopup, GoogleAuthProvider, sendPasswordResetEmail, getRedirectResult } from 'firebase/auth';
-import { doc, setDoc, getDoc } from 'firebase/firestore';
-import { db } from '../firebase';
+import { getFirebaseServices, isFirebaseConfigured } from '../firebase';
 
 // Provedor de autenticação do Google
-const googleProvider = new GoogleAuthProvider();
+const unavailableFirebaseResult = {
+  success: false,
+  message: 'Firebase não está configurado neste ambiente. Use o modo offline ou configure as variáveis VITE_FIREBASE_*.'
+};
 
 /**
  * Realiza login com email e senha
@@ -18,13 +18,21 @@ const googleProvider = new GoogleAuthProvider();
  * @returns {Promise<Object>} Objeto com success (boolean) e user ou message
  */
 export const loginWithEmail = async (email, senha) => {
+  if (!isFirebaseConfigured) {
+    return unavailableFirebaseResult;
+  }
+
   try {
+    const { auth, db } = await getFirebaseServices();
+    const authModule = await import('firebase/auth');
+    const firestoreModule = await import('firebase/firestore');
+
     // Autentica com Firebase Auth
-    const userCredential = await signInWithEmailAndPassword(auth, email, senha);
+    const userCredential = await authModule.signInWithEmailAndPassword(auth, email, senha);
     const user = userCredential.user;
     
     // Busca dados adicionais do usuário no Firestore
-    const userDoc = await getDoc(doc(db, 'usuarios', user.uid));
+    const userDoc = await firestoreModule.getDoc(firestoreModule.doc(db, 'usuarios', user.uid));
     const userData = {
       uid: user.uid,
       email: user.email,
@@ -46,13 +54,21 @@ export const loginWithEmail = async (email, senha) => {
  * @returns {Promise<Object>} Objeto com success (boolean) e user ou message
  */
 export const registerUser = async (nome, email, senha) => {
+  if (!isFirebaseConfigured) {
+    return unavailableFirebaseResult;
+  }
+
   try {
+    const { auth, db } = await getFirebaseServices();
+    const authModule = await import('firebase/auth');
+    const firestoreModule = await import('firebase/firestore');
+
     // Cria conta no Firebase Auth
-    const userCredential = await createUserWithEmailAndPassword(auth, email, senha);
+    const userCredential = await authModule.createUserWithEmailAndPassword(auth, email, senha);
     
     // Cria documento do usuário no Firestore
     const userData = { nome, materias: [] };
-    await setDoc(doc(db, 'usuarios', userCredential.user.uid), userData);
+    await firestoreModule.setDoc(firestoreModule.doc(db, 'usuarios', userCredential.user.uid), userData);
     
     const user = {
       uid: userCredential.user.uid,
@@ -81,14 +97,22 @@ const isMobile = () => {
  * @returns {Promise<Object>} Objeto com success e user/message
  */
 export const loginWithGoogle = async () => {
+  if (!isFirebaseConfigured) {
+    return unavailableFirebaseResult;
+  }
+
   try {
+    const { auth, db } = await getFirebaseServices();
+    const authModule = await import('firebase/auth');
+    const googleProvider = new authModule.GoogleAuthProvider();
+
     // Usa redirect em mobile, popup em desktop
     if (isMobile()) {
-      await signInWithRedirect(auth, googleProvider);
+      await authModule.signInWithRedirect(auth, googleProvider);
       return { success: true, message: 'Redirecionando para o Google...' };
     } else {
-      const userCredential = await signInWithPopup(auth, googleProvider);
-      return await processGoogleUser(userCredential);
+      const userCredential = await authModule.signInWithPopup(auth, googleProvider);
+      return await processGoogleUser(userCredential, db);
     }
   } catch (error) {
     console.error('Erro no login com Google:', error.message, error.code);
@@ -101,10 +125,16 @@ export const loginWithGoogle = async () => {
  * @returns {Promise<Object|null>} Resultado do login ou null se não houver redirect
  */
 export const handleGoogleRedirect = async () => {
+  if (!isFirebaseConfigured) {
+    return null;
+  }
+
   try {
-    const result = await getRedirectResult(auth);
+    const { auth, db } = await getFirebaseServices();
+    const authModule = await import('firebase/auth');
+    const result = await authModule.getRedirectResult(auth);
     if (result) {
-      return await processGoogleUser(result);
+      return await processGoogleUser(result, db);
     }
     return null;
   } catch (error) {
@@ -119,9 +149,14 @@ export const handleGoogleRedirect = async () => {
  * @param {Object} userCredential - Credenciais do usuário retornadas pelo Google
  * @returns {Promise<Object>} Objeto com success e dados do user
  */
-const processGoogleUser = async (userCredential) => {
-  const docRef = doc(db, 'usuarios', userCredential.user.uid);
-  const docSnap = await getDoc(docRef);
+const processGoogleUser = async (userCredential, db) => {
+  if (!db) {
+    return unavailableFirebaseResult;
+  }
+
+  const firestoreModule = await import('firebase/firestore');
+  const docRef = firestoreModule.doc(db, 'usuarios', userCredential.user.uid);
+  const docSnap = await firestoreModule.getDoc(docRef);
   
   let userData;
   if (!docSnap.exists()) {
@@ -130,7 +165,7 @@ const processGoogleUser = async (userCredential) => {
       nome: userCredential.user.displayName || 'Usuário Google',
       materias: [],
     };
-    await setDoc(docRef, userData);
+    await firestoreModule.setDoc(docRef, userData);
   } else {
     // Usuário já existe - carrega dados
     userData = docSnap.data();
@@ -152,8 +187,14 @@ const processGoogleUser = async (userCredential) => {
  * @returns {Promise<Object>} Objeto com success e mensagem
  */
 export const resetPassword = async (email) => {
+  if (!isFirebaseConfigured) {
+    return unavailableFirebaseResult;
+  }
+
   try {
-    await sendPasswordResetEmail(auth, email);
+    const auth = await getFirebaseServices().then((services) => services.auth);
+    const authModule = await import('firebase/auth');
+    await authModule.sendPasswordResetEmail(auth, email);
     return { success: true, message: 'Email de redefinição enviado! Verifique sua caixa de entrada.' };
   } catch (error) {
     return { success: false, message: `Erro ao enviar email de redefinição: ${error.message}` };
@@ -165,8 +206,14 @@ export const resetPassword = async (email) => {
  * @throws {Error} Se houver erro no processo de logout
  */
 export const logout = async () => {
+  if (!isFirebaseConfigured) {
+    return;
+  }
+
   try {
-    await signOut(auth);
+    const auth = await getFirebaseServices().then((services) => services.auth);
+    const authModule = await import('firebase/auth');
+    await authModule.signOut(auth);
   } catch (error) {
     console.error('Erro ao fazer logout:', error.message);
     throw error; 

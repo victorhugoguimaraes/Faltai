@@ -69,7 +69,7 @@ const config = {
       },
       fontFamily: {
         'sans': ['Inter', 'system-ui', 'sans-serif'],
-        'display': ['Poppins', 'system-ui', 'sans-serif'],
+        'display': ['"DM Serif Display"', 'Georgia', 'serif'],
       },
       animation: {
         'fade-in': 'fadeIn 0.5s ease-in-out',
@@ -78,10 +78,10 @@ const config = {
         'pulse-slow': 'pulse 3s infinite',
       },
       backgroundImage: {
-        'gradient-primary': 'linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%)',
+        'gradient-primary': 'linear-gradient(135deg, #166534 0%, #14532d 100%)',
         'gradient-success': 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)',
-        'gradient-warm': 'linear-gradient(135deg, #f97316 0%, #ea580c 100%)',
-        'gradient-subtle': 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)',
+        'gradient-warm': 'linear-gradient(135deg, #92400e 0%, #78350f 100%)',
+        'gradient-subtle': 'linear-gradient(135deg, #f6f1e8 0%, #e7e5df 100%)',
       },
       boxShadow: {
         'soft': '0 2px 15px -3px rgba(0, 0, 0, 0.07), 0 10px 20px -2px rgba(0, 0, 0, 0.04)',

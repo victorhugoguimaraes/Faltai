@@ -195,6 +195,17 @@ export const validateRange = (value, min = -Infinity, max = Infinity, fieldName 
   return { isValid: true, message: '' };
 };
 
+export const calculateMaxFaltas = (horas, pesoFalta = 1) => {
+  const horasNormalizadas = parseInt(horas, 10) || 0;
+  const pesoNormalizado = parseFloat(pesoFalta) || 1;
+
+  if (horasNormalizadas <= 0 || pesoNormalizado <= 0) {
+    return 0;
+  }
+
+  return Math.floor((horasNormalizadas * 0.25) / pesoNormalizado);
+};
+
 export const sanitizeMateria = (materia) => {
   return {
     nome: materia.nome?.trim() || '',
@@ -202,7 +213,7 @@ export const sanitizeMateria = (materia) => {
     pesoFalta: parseFloat(materia.pesoFalta) || 1,
     avaliacoes: materia.avaliacoes || [],
     faltas: materia.faltas || 0,
-    maxFaltas: Math.floor((parseInt(materia.horas) || 0) * 0.25),
+    maxFaltas: calculateMaxFaltas(materia.horas, materia.pesoFalta),
     id: materia.id || Date.now()
   };
 };

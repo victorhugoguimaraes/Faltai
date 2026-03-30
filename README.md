@@ -1,249 +1,218 @@
 # Faltai
 
-Sistema web progressivo para controle e gerenciamento de faltas acadêmicas, desenvolvido com React e Firebase.
+Aplicacao web progressiva para controle de faltas academicas, com foco em uso mobile, notificacoes e acompanhamento rapido da situacao de cada materia.
 
-## Sobre o Projeto
+**Acesse a aplicacao:** [https://victorhugoguimaraes.github.io/Faltai/](https://victorhugoguimaraes.github.io/Faltai/)
 
-Faltai é uma aplicação web que ajuda estudantes a gerenciar suas faltas em disciplinas universitárias. O sistema calcula automaticamente o limite de faltas permitidas com base na carga horária de cada matéria (25% da carga total) e fornece feedback visual em tempo real sobre a situação do aluno.
+## O que mudou nesta versao
 
-**Acesse a aplicação:** [https://victorhugoguimaraes.github.io/Faltai/](https://victorhugoguimaraes.github.io/Faltai/)
+- Shell mobile-first com header compacto, atalhos mais fortes e navegacao inferior fixa
+- Estrutura de projeto reorganizada para ficar mais clara no GitHub
+- Migracao de Create React App para Vite + Vitest
+- Fluxos de auth e notificacoes mais robustos
+- Ambiente atualizado para reduzir vulnerabilidades e melhorar manutencao
 
-## Funcionalidades Principais
+## Funcionalidades
 
-### Gerenciamento de Matérias
-- Adicionar, editar e excluir matérias
-- Definir carga horária e peso de faltas (1, 2 ou 4 faltas por vez)
-- Cálculo automático do limite máximo de faltas (25% da carga horária)
-- Visualização em lista com cards responsivos
+- Cadastro, edicao e exclusao de materias
+- Controle de faltas com calculo automatico do limite permitido
+- Calendario de faltas por materia
+- Calendario academico e calendario de avaliacoes
+- Dashboard com graficos, tendencias e materias em risco
+- Notificacoes locais e lembretes configuraveis
+- Login com Firebase Authentication e modo local quando Firebase nao estiver configurado
+- PWA com suporte offline basico
 
-### Controle de Faltas
-- Marcar faltas através de calendário interativo
-- Adicionar/remover faltas manualmente com botões rápidos
-- Histórico visual de faltas por data
-- Barra de progresso dinâmica com 5 níveis de cores:
-  - Verde escuro (0-40%): Situação muito segura
-  - Verde claro (41-60%): Situação segura
-  - Amarelo (61-75%): Atenção necessária
-  - Laranja (76-90%): Alerta crítico
-  - Vermelho (91-100%): Limite atingido
-
-### Calendários
-- **Calendário de Faltas**: Visualização individual por matéria
-- **Calendário Acadêmico**: Gerenciamento de eventos gerais (aulas, feriados, recessos)
-- **Calendário de Avaliações**: Organização de provas e trabalhos
-- Todos os calendários com suporte a localização em português (pt-BR)
-- Navegação responsiva com ano sempre visível
-
-### Sistema de Notificações
-- Notificações de lembrete de faltas
-- Alertas de presença antes do limite
-- Lembretes semanais configuráveis
-- Suporte a notificações push quando disponível
-- Gerenciador flutuante com histórico de notificações
-
-### Gamificação
-- Sistema de pontos por ações no aplicativo
-- Conquistas desbloqueáveis
-- Níveis de progressão
-- Estatísticas e gráficos de desempenho
-
-### Autenticação
-- Login com Firebase Authentication
-- Cadastro de novos usuários
-- Recuperação de senha
-- Modo anônimo para testes
-
-## Tecnologias Utilizadas
+## Stack
 
 ### Frontend
-- **React 19.0.0**: Biblioteca principal para construção da interface
-- **React Router**: Navegação entre páginas
-- **Tailwind CSS 3.4.17**: Framework de estilização utilitária
-- **React Icons 5.5.0**: Ícones SVG otimizados
-- **React Calendar 5.1.0**: Componentes de calendário interativos
-- **Chart.js 4.5.0 + React-Chartjs-2 5.3.0**: Visualização de dados e gráficos
 
-### Backend e Serviços
-- **Firebase 11.3.1**:
-  - Authentication: Gerenciamento de usuários
-  - Firestore: Banco de dados em tempo real
-  - Hosting: Hospedagem da aplicação
+- React 19
+- Vite 6
+- Tailwind CSS 3
+- React Icons
+- React Calendar
+- Chart.js + React Chartjs 2
 
-### Ferramentas de Desenvolvimento
-- **Create React App 5.0.1**: Configuração e build
-- **PostCSS 8.5.3 + Autoprefixer 10.4.20**: Processamento de CSS
-- **gh-pages 6.1.1**: Deploy automatizado no GitHub Pages
+### Backend e servicos
 
-## Design e UX
+- Firebase Authentication
+- Firestore
+- Firebase Analytics quando suportado pelo navegador
+- API Node para consulta publica de turmas da UnB via SIGAA
 
-### Responsividade
-- Design mobile-first otimizado para dispositivos móveis
-- Bottom sheets nativos em modais mobile
-- Drag handles visuais para melhor experiência touch
-- Breakpoints adaptados para tablets e desktops
+### Qualidade
 
-### Acessibilidade
-- Labels semânticos em formulários
-- Atributos ARIA para leitores de tela
-- Contraste adequado de cores (WCAG 2.1)
-- Navegação por teclado funcional
+- Vitest
+- Testing Library
+- GitHub Actions para teste, build e deploy no GitHub Pages
 
-### Performance
-- Code splitting automático
-- Lazy loading de componentes
-- Bundle otimizado (187KB gzip)
-- Service Worker para funcionamento offline (PWA)
+## Design e experiencia mobile
 
-## Instalação e Execução
+O app foi reorganizado para parecer mais um produto instalado do que uma pagina tradicional:
 
-### Pré-requisitos
-- Node.js 14.x ou superior
-- npm ou yarn
-- Conta Firebase (para configuração do backend)
+- header mais compacto
+- hero inicial com resumo rapido
+- navegacao inferior fixa para uso com o polegar
+- FAB para adicionar materia
+- cards de acao com atalhos para agenda e insights
+- central de avisos mais acessivel
 
-### Instalação
+## Estrutura do projeto
 
-```bash
-# Clone o repositório
-git clone https://github.com/victorhugoguimaraes/Faltai.git
-
-# Entre no diretório
-cd Faltai
-
-# Instale as dependências
-npm install
-```
-
-### Configuração do Firebase
-
-1. Crie um projeto no [Firebase Console](https://console.firebase.google.com/)
-2. Ative Authentication e Firestore Database
-3. Copie as credenciais do Firebase
-4. Configure o arquivo `src/firebase.js` com suas credenciais
-
-### Executando Localmente
-
-```bash
-# Modo de desenvolvimento
-npm start
-
-# A aplicação abrirá em http://localhost:3000
-```
-
-### Build para Produção
-
-```bash
-# Gera build otimizado
-npm run build
-
-# Deploy para GitHub Pages
-npm run deploy
-```
-
-## Estrutura do Projeto
-
-```
+```text
 Faltai/
+├── docs/
+│   ├── DOCUMENTATION.md
+│   └── SECURITY.md
 ├── public/
-│   ├── index.html
+│   ├── icon-192.png
+│   ├── icon-512.png
 │   ├── manifest.json
 │   └── sw/
 │       └── sw.js
 ├── src/
+│   ├── app/
+│   │   ├── App.jsx
+│   │   └── providers.jsx
 │   ├── components/
-│   │   ├── AddMateriaModal.js
-│   │   ├── AvaliacoesCalendario.js
-│   │   ├── CalendarioAcademico.js
-│   │   ├── CalendarModal.js
-│   │   ├── Dashboard.js
-│   │   ├── DeleteMateriaModal.js
-│   │   ├── EditMateriaModal.js
-│   │   ├── FaltaiCalendar.js
-│   │   ├── GamificationSystem.js
-│   │   ├── Home.js
-│   │   ├── Login.js
-│   │   ├── MateriaList.js
-│   │   ├── NotificationManager.js
-│   │   ├── ScheduledNotifications.js
-│   │   └── common/
-│   │       ├── LoadingSpinner.js
-│   │       └── NotificationToast.js
+│   │   ├── common/
+│   │   ├── layout/
+│   │   └── *.jsx
 │   ├── contexts/
-│   │   ├── AuthContext.js
-│   │   ├── ErrorContext.js
-│   │   └── MateriasContext.js
+│   ├── features/
+│   │   ├── calendar/
+│   │   ├── dashboard/
+│   │   └── home/
+│   ├── lib/
+│   │   └── env.js
 │   ├── services/
-│   │   ├── authService.js
-│   │   ├── materiaService.js
-│   │   └── notificationService.js
+│   ├── styles/
+│   │   └── tokens.css
 │   ├── utils/
-│   │   ├── pwaUtils.js
-│   │   └── validation.js
 │   ├── App.js
 │   ├── firebase.js
 │   ├── index.css
-│   └── index.js
-├── build/
+│   ├── main.jsx
+│   └── setupTests.js
+├── index.html
+├── vite.config.js
 ├── package.json
-├── tailwind.config.js
 └── README.md
 ```
 
-## Arquitetura
+## Como rodar
 
-### Contextos React
-- **AuthContext**: Gerencia estado de autenticação do usuário
-- **MateriasContext**: Centraliza dados e operações de matérias
-- **ErrorContext**: Sistema global de notificações e erros
+### Requisitos
 
-### Serviços
-- **authService**: Operações de login, registro e recuperação de senha
-- **materiaService**: CRUD de matérias no Firestore
-- **notificationService**: Gerenciamento de notificações e lembretes
+- Node.js 18 ou superior
+- npm
+- Projeto Firebase, se quiser usar auth e persistencia online
 
-### Componentes Reutilizáveis
-- **LoadingSpinner**: Indicador de carregamento
-- **NotificationToast**: Sistema de toast messages
-- **Modais**: Componentes padronizados para ações do usuário
+### Instalacao
 
-## Segurança
+```bash
+git clone https://github.com/victorhugoguimaraes/Faltai.git
+cd Faltai
+npm install
+```
 
-- Validação de dados no cliente e servidor
-- Sanitização de inputs do usuário
-- Regras de segurança do Firestore configuradas
-- Autenticação via Firebase Authentication
-- HTTPS obrigatório em produção
+### Configuracao do Firebase
 
-## Contribuindo
+1. Crie um projeto no Firebase Console.
+2. Ative Authentication e Firestore.
+3. Copie as credenciais do app web.
+4. Crie o arquivo `.env.local` a partir de `.env.example`.
+5. Preencha as variaveis `VITE_FIREBASE_*`.
 
-Contribuições são bem-vindas! Para contribuir:
+Exemplo:
 
-1. Faça um fork do projeto
-2. Crie uma branch para sua feature (`git checkout -b feature/nova-funcionalidade`)
-3. Commit suas mudanças (`git commit -m 'Adiciona nova funcionalidade'`)
-4. Push para a branch (`git push origin feature/nova-funcionalidade`)
-5. Abra um Pull Request
+```bash
+VITE_FIREBASE_API_KEY=...
+VITE_FIREBASE_AUTH_DOMAIN=...
+VITE_FIREBASE_PROJECT_ID=...
+VITE_FIREBASE_STORAGE_BUCKET=...
+VITE_FIREBASE_MESSAGING_SENDER_ID=...
+VITE_FIREBASE_APP_ID=...
+VITE_FIREBASE_MEASUREMENT_ID=...
+VITE_FIREBASE_DATABASE_URL=...
+```
 
-## Roadmap
+Sem essas variaveis, o projeto continua funcional em modo local para desenvolvimento basico.
 
-- [ ] Sistema de turmas e compartilhamento de horários
-- [ ] Exportação de relatórios em PDF
-- [ ] Integração com Google Calendar
-- [ ] App nativo mobile (React Native)
-- [ ] Modo escuro (dark mode)
-- [ ] Suporte a múltiplos idiomas
+### Desenvolvimento
 
-## Licença
+```bash
+npm run dev:api
+npm run dev
+```
 
-Este projeto está sob a licença MIT. Veja o arquivo [LICENSE](LICENSE) para mais detalhes.
+O front abre normalmente em `http://localhost:5173` ou `http://localhost:5174`, e a API da UnB fica em `http://localhost:8787`.
 
-## Autor
+### Testes
 
-**Victor Hugo Guimarães**
+```bash
+npm run test:ci
+```
 
-- GitHub: [@victorhugoguimaraes](https://github.com/victorhugoguimaraes)
-- Repositório: [Faltai](https://github.com/victorhugoguimaraes/Faltai)
+### Build
 
----
+```bash
+npm run build
+```
 
-**Nota**: Esta aplicação foi desenvolvida para fins educacionais e de controle pessoal. O cálculo de faltas segue a regra geral de 25% da carga horária, mas sempre verifique as normas específicas da sua instituição de ensino.
+O output final fica em `dist/`.
+
+### Deploy do front
+
+O front do Faltai fica no GitHub Pages. O workflow `.github/workflows/ci-pages.yml` já publica o `dist/` automaticamente.
+
+Para a busca de turmas da UnB funcionar em produção, configure no repositório do GitHub a variável:
+
+```text
+Settings > Secrets and variables > Actions > Variables
+VITE_UNB_API_URL=https://sua-api-em-producao.onrender.com
+```
+
+### Deploy da API da UnB
+
+A API não pode ficar no GitHub Pages, porque ela faz scraping do SIGAA no servidor. O projeto já vem pronto para subir no Render usando [render.yaml](/home/victor/Faltai/render.yaml).
+
+Variáveis recomendadas no serviço da API:
+
+```bash
+CORS_ORIGINS=https://victorhugoguimaraes.github.io,http://localhost:5173,http://localhost:5174
+PORT=10000
+```
+
+Depois do deploy da API, copie a URL pública e use em `VITE_UNB_API_URL` no workflow do GitHub Pages.
+
+### Deploy manual
+
+Se quiser publicar só o front manualmente:
+
+```bash
+npm run deploy
+```
+
+Mas a busca da UnB em produção só funciona com a API publicada separadamente.
+
+## Qualidade e manutencao
+
+- Testes para validacao, assets e persistencia local
+- Separacao melhor entre shell do app, layout e telas de feature
+- Variaveis de ambiente centralizadas
+- Build com code splitting e chunks dedicados para dependencias pesadas
+- Auditoria de dependencias sem vulnerabilidades na ultima validacao local
+
+## Proximos passos recomendados
+
+- Continuar quebrando componentes grandes como `Dashboard` e `NotificationManager`
+- Expandir testes para fluxos de auth e materias
+- Refinar ainda mais o fluxo de agenda mobile com bottom sheets e gestos
+- Avaliar extracao de mais regras de negocio para `features/` e `lib/`
+
+## Documentacao adicional
+
+- [Documentacao tecnica](./docs/DOCUMENTATION.md)
+- [Seguranca](./docs/SECURITY.md)
