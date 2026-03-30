@@ -1,5 +1,7 @@
 import React from 'react';
+import { FaCompass, FaUserSecret } from 'react-icons/fa';
 import { useAuth } from '../contexts/AuthContext';
+import BottomSheet from './layout/BottomSheet';
 
 function AnonymousModal({ setAnonymousModalOpen }) {
   const { loginAnonymously } = useAuth();
@@ -10,29 +12,35 @@ function AnonymousModal({ setAnonymousModalOpen }) {
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white p-4 sm:p-6 rounded-2xl shadow-lg w-full max-w-xs sm:max-w-sm">
-        <h2 className="text-lg sm:text-xl font-bold mb-3 sm:mb-4 text-blue-700">Modo Anônimo</h2>
-        <p className="text-xs sm:text-sm text-gray-600 mb-3 sm:mb-4">
+    <BottomSheet
+      isOpen
+      onClose={() => setAnonymousModalOpen(false)}
+      title="Usar sem conta"
+      icon={<FaCompass className="text-lg sm:text-xl" />}
+      className="sm:max-w-md"
+      contentClassName="space-y-4 p-4 sm:p-6"
+      mobileFullHeight
+    >
+      <div className="rounded-[1.5rem] border border-slate-100 bg-slate-50 p-4">
+        <p className="text-sm leading-6 text-slate-600">
           Se você conectar anonimamente, seu registro de faltas não ficará online.<br />
           Isso significa que você pode perder a contagem ao limpar dados ou trocar de dispositivo.
         </p>
-        <div className="flex justify-end gap-2">
-          <button
-            className="p-1 sm:p-2 bg-gray-400 text-white rounded-2xl hover:bg-gray-500 transition duration-200 text-xs sm:text-sm"
-            onClick={() => setAnonymousModalOpen(false)}
-          >
-            Cancelar
-          </button>
-          <button
-            className="p-1 sm:p-2 bg-gray-500 text-white rounded-2xl hover:bg-gray-600 transition duration-200 text-xs sm:text-sm"
-            onClick={handleAnonymousLogin}
-          >
-            Continuar Anônimo
-          </button>
-        </div>
       </div>
-    </div>
+
+      <div className="grid gap-3">
+        <button className="btn-primary w-full justify-center" onClick={handleAnonymousLogin}>
+          <FaUserSecret />
+          Continuar sem conta
+        </button>
+        <button
+          className="text-sm font-semibold text-slate-500 underline underline-offset-4"
+          onClick={() => setAnonymousModalOpen(false)}
+        >
+          Cancelar
+        </button>
+      </div>
+    </BottomSheet>
   );
 }
 

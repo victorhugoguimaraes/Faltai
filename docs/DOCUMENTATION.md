@@ -1,4 +1,4 @@
-# 📚 Documentação do Projeto Faltaí
+<!--  --># 📚 Documentação do Projeto Faltaí
 
 ## 📋 Visão Geral
 Sistema web para gerenciamento de faltas acadêmicas com suporte offline/online, notificações e gamificação.

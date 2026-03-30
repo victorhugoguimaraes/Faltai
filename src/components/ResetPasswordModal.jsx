@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
+import { FaEnvelope, FaKey } from 'react-icons/fa';
 import { resetPassword } from '../services/authService';
+import BottomSheet from './layout/BottomSheet';
 
 function ResetPasswordModal({ setResetModalOpen }) {
   const [resetEmail, setResetEmail] = useState('');
@@ -19,38 +21,53 @@ function ResetPasswordModal({ setResetModalOpen }) {
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white p-4 sm:p-6 rounded-xl shadow-lg w-full max-w-xs sm:max-w-sm">
-        <h2 className="text-lg sm:text-xl font-bold mb-3 sm:mb-4 text-blue-700">Redefinir Senha</h2>
-        <p className="text-xs sm:text-sm text-gray-600 mb-3 sm:mb-4">
+    <BottomSheet
+      isOpen
+      onClose={() => setResetModalOpen(false)}
+      title="Redefinir senha"
+      icon={<FaKey className="text-lg sm:text-xl" />}
+      className="sm:max-w-md"
+      contentClassName="space-y-4 p-4 sm:p-6"
+      mobileFullHeight
+    >
+      <div className="rounded-[1.5rem] border border-slate-100 bg-slate-50 p-4">
+        <p className="text-sm leading-6 text-slate-600">
           Insira seu email para receber um link de redefinição.
         </p>
-        {message && <p className={`text-xs sm:text-sm mb-3 sm:mb-4 text-center ${message.includes('Erro') ? 'text-red-500' : 'text-green-500'}`}>{message}</p>}
-        <form onSubmit={handleReset}>
+      </div>
+
+      {message && (
+        <p className={`rounded-2xl px-4 py-3 text-sm ${message.includes('Erro') ? 'bg-rose-50 text-rose-600' : 'bg-emerald-50 text-emerald-700'}`}>
+          {message}
+        </p>
+      )}
+
+      <form onSubmit={handleReset} className="space-y-4">
+        <div className="space-y-3">
+          <label className="block text-sm font-medium text-slate-700">Email</label>
           <input
-            className="w-full p-2 sm:p-3 mb-3 sm:mb-6 border border-blue-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-blue-50 placeholder-gray-500 text-xs sm:text-sm"
+            className="input-modern"
             placeholder="Email"
             value={resetEmail}
             onChange={(e) => setResetEmail(e.target.value)}
           />
-          <div className="flex justify-end gap-2">
-            <button
-              type="button"
-              className="p-1 sm:p-2 bg-gray-400 text-white rounded-lg hover:bg-gray-500 transition duration-200 text-xs sm:text-sm"
-              onClick={() => setResetModalOpen(false)}
-            >
-              Cancelar
-            </button>
-            <button
-              type="submit"
-              className="p-1 sm:p-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition duration-200 text-xs sm:text-sm"
-            >
-              Enviar
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+        </div>
+
+        <div className="grid gap-3 pt-2">
+          <button type="submit" className="btn-primary w-full justify-center">
+            <FaEnvelope />
+            Enviar link
+          </button>
+          <button
+            type="button"
+            className="text-sm font-semibold text-slate-500 underline underline-offset-4"
+            onClick={() => setResetModalOpen(false)}
+          >
+            Cancelar
+          </button>
+        </div>
+      </form>
+    </BottomSheet>
   );
 }
 
