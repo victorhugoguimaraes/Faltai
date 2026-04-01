@@ -4,7 +4,7 @@ import { useMaterias } from '../contexts/MateriasContext';
 import { useError } from '../contexts/ErrorContext';
 import FaltaiCalendar from './FaltaiCalendar';
 import { formatLocalDate } from '../utils/dates';
-import { loadTurmas } from '../features/schedule/lib/turmasStorage';
+import { loadTurmas, subscribeToTurmas } from '../features/schedule/lib/turmasStorage';
 
 const weekdayOrder = ['SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SAB'];
 
@@ -19,8 +19,14 @@ function MateriaList({
   const { addError } = useError();
   const [selectedMateria, setSelectedMateria] = useState(null);
   const [calendarOpen, setCalendarOpen] = useState(false);
+  const [turmas, setTurmas] = useState(() => loadTurmas());
 
   useEffect(() => () => onCalendarOverlayChange(false), [onCalendarOverlayChange]);
+
+  useEffect(() => {
+    setTurmas(loadTurmas());
+    return subscribeToTurmas(setTurmas);
+  }, []);
 
   const handleFaltaChange = async (index, delta) => {
     const materia = materias[index];
@@ -82,7 +88,7 @@ function MateriaList({
     );
   }
 
-  const turmas = loadTurmas()
+  const sortedTurmas = turmas
     .slice()
     .sort((a, b) => {
       const dayDiff = weekdayOrder.indexOf(a.diaSemana) - weekdayOrder.indexOf(b.diaSemana);
@@ -95,7 +101,7 @@ function MateriaList({
 
   return (
     <div className="space-y-4 pb-28 sm:space-y-5 sm:pb-10">
-      {turmas.length > 0 && (
+      {sortedTurmas.length > 0 && (
         <section className="rounded-[1.75rem] border border-white/80 bg-white/85 p-4 shadow-soft backdrop-blur-xl sm:p-6">
           <div className="mb-4 flex items-center justify-between gap-3">
             <div>
@@ -103,13 +109,13 @@ function MateriaList({
               <h2 className="mt-2 font-display text-2xl font-bold text-slate-950">Sua semana montada</h2>
             </div>
             <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
-              {turmas.length} blocos
+              {sortedTurmas.length} blocos
             </span>
           </div>
 
           <div className="grid gap-3 lg:grid-cols-3">
             {weekdayOrder.map((day) => {
-              const dayTurmas = turmas.filter((turma) => turma.diaSemana === day);
+              const dayTurmas = sortedTurmas.filter((turma) => turma.diaSemana === day);
 
               return (
                 <div key={day} className="rounded-[1.5rem] border border-slate-100 bg-slate-50 p-4">

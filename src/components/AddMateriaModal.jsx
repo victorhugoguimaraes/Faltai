@@ -14,7 +14,7 @@ import { useMaterias } from '../contexts/MateriasContext';
 import { useError } from '../contexts/ErrorContext';
 import { calculateMaxFaltas, sanitizeMateria, validateMateria } from '../utils/validation';
 import { fetchUnbClasses, fetchUnbDepartments } from '../features/schedule/lib/unbApi';
-import { createTurma, loadTurmas, saveTurmas } from '../features/schedule/lib/turmasStorage';
+import { createTurma, loadTurmas, mergeTurmas, saveTurmas } from '../features/schedule/lib/turmasStorage';
 
 const currentYear = new Date().getFullYear();
 const availableTerms = [
@@ -138,7 +138,7 @@ function AddMateriaModal({ setModalOpen }) {
       })
     );
 
-    saveTurmas([...currentTurmas, ...mappedTurmas]);
+    saveTurmas(mergeTurmas(currentTurmas, mappedTurmas));
   };
 
   const handleSubmit = async (event) => {
