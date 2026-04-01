@@ -22,6 +22,13 @@ function normalizeForSearch(value = '') {
     .toLowerCase();
 }
 
+function getSearchTokens(query = '') {
+  return normalizeForSearch(query)
+    .split(/\s+/)
+    .map((token) => token.trim())
+    .filter(Boolean);
+}
+
 function extractViewState(html) {
   const $ = cheerio.load(html);
   return $('input[name="javax.faces.ViewState"]').val() || 'j_id1';
@@ -204,7 +211,112 @@ function parseClassRows(html) {
   return classes;
 }
 
-async function searchTurmas({ department, year, period, query = '' }) {
+function rankDisciplineMatch(discipline, tokens) {
+  const disciplineHaystack = normalizeForSearch(`${discipline.code} ${discipline.name}`);
+
+  if (!tokens.every((token) => disciplineHaystack.includes(token))) {
+    return null;
+  }
+
+  return tokens.reduce((score, token) => {
+    if (discipline.code === token) {
+      return score + 200;
+    }
+
+    if (discipline.code.startsWith(token)) {
+      return score + 130;
+    }
+
+    if (discipline.name.startsWith(token)) {
+      return score + 110;
+    }
+
+    if (disciplineHaystack.includes(token)) {
+      return score + 80;
+    }
+
+    return score;
+  }, 0);
+}
+
+function rankClassMatch(discipline, turma, tokens) {
+  const classHaystack = normalizeForSearch(
+    [
+      discipline.code,
+      discipline.name,
+      turma.classCode,
+      turma.teachers.join(' '),
+      turma.classroom,
+      turma.scheduleCode,
+      turma.scheduleText.join(' ')
+    ].join(' ')
+  );
+
+  if (!tokens.every((token) => classHaystack.includes(token))) {
+    return null;
+  }
+
+  return tokens.reduce((score, token) => {
+    if (turma.classCode === token) {
+      return score + 120;
+    }
+
+    if (turma.classCode.startsWith(token)) {
+      return score + 90;
+    }
+
+    if (normalizeForSearch(turma.teachers.join(' ')).includes(token)) {
+      return score + 35;
+    }
+
+    if (normalizeForSearch(turma.classroom).includes(token)) {
+      return score + 25;
+    }
+
+    return score + 20;
+  }, 0);
+}
+
+function filterDisciplinesByQuery(disciplines, query = '') {
+  const tokens = getSearchTokens(query);
+
+  if (tokens.length === 0) {
+    return disciplines;
+  }
+
+  return disciplines
+    .map((discipline) => {
+      const disciplineScore = rankDisciplineMatch(discipline, tokens);
+      const matchingClasses = discipline.classes
+        .map((turma) => ({
+          turma,
+          score: rankClassMatch(discipline, turma, tokens)
+        }))
+        .filter((item) => item.score !== null)
+        .sort((left, right) => right.score - left.score || left.turma.classCode.localeCompare(right.turma.classCode));
+
+      if (disciplineScore === null && matchingClasses.length === 0) {
+        return null;
+      }
+
+      return {
+        ...discipline,
+        classes: disciplineScore !== null ? discipline.classes : matchingClasses.map((item) => item.turma),
+        relevanceScore: Math.max(disciplineScore || 0, matchingClasses[0]?.score || 0)
+      };
+    })
+    .filter(Boolean)
+    .sort((left, right) => {
+      if (right.relevanceScore !== left.relevanceScore) {
+        return right.relevanceScore - left.relevanceScore;
+      }
+
+      return `${left.code} ${left.name}`.localeCompare(`${right.code} ${right.name}`);
+    })
+    .map(({ relevanceScore, ...discipline }) => discipline);
+}
+
+async function searchTurmas({ department, year, period }) {
   const { html, cookieJar } = await getInitialForm();
   const viewState = extractViewState(html);
   const submitName = extractSearchButtonName(html);
@@ -230,35 +342,11 @@ async function searchTurmas({ department, year, period, query = '' }) {
   });
 
   const resultHtml = await response.text();
-  const disciplines = parseClassRows(resultHtml);
-  const normalizedQuery = normalizeForSearch(query);
-
-  if (!normalizedQuery) {
-    return disciplines;
-  }
-
-  return disciplines
-    .map((discipline) => ({
-      ...discipline,
-      classes: discipline.classes.filter((turma) => {
-        const haystack = [
-          discipline.code,
-          discipline.name,
-          turma.classCode,
-          turma.teachers.join(' '),
-          turma.scheduleCode
-        ].join(' ');
-
-        return normalizeForSearch(haystack).includes(normalizedQuery);
-      })
-    }))
-    .filter((discipline) => {
-      const haystack = `${discipline.code} ${discipline.name}`;
-      return normalizeForSearch(haystack).includes(normalizedQuery) || discipline.classes.length > 0;
-    });
+  return parseClassRows(resultHtml);
 }
 
 module.exports = {
+  filterDisciplinesByQuery,
   getInitialForm,
   parseDepartments,
   searchTurmas

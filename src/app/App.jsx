@@ -165,7 +165,7 @@ function App() {
         />
       )}
 
-      <main className="relative z-10 mx-auto flex min-h-screen w-full max-w-6xl flex-col px-4 pb-28 pt-6 sm:px-6 lg:px-8">
+      <main className="relative z-10 mx-auto flex min-h-screen w-full max-w-6xl flex-col overflow-x-clip px-4 pb-40 pt-6 sm:px-6 sm:pb-36 lg:px-8">
         <section className="mb-6 grid gap-3 sm:grid-cols-4">
           <button
             className="card p-4 text-left transition-transform hover:-translate-y-0.5"

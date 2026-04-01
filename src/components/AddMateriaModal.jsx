@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import Calendar from 'react-calendar';
 import 'react-calendar/dist/Calendar.css';
 import {
@@ -18,8 +18,7 @@ import { createTurma, loadTurmas, saveTurmas } from '../features/schedule/lib/tu
 
 const currentYear = new Date().getFullYear();
 const availableTerms = [
-  { value: `${currentYear}-1`, label: `${String(currentYear).slice(-2)}/1` },
-  { value: `${currentYear}-2`, label: `${String(currentYear).slice(-2)}/2` }
+  { value: `${currentYear}-1`, label: `${String(currentYear).slice(-2)}/1` }
 ];
 
 function AddMateriaModal({ setModalOpen }) {
@@ -50,6 +49,8 @@ function AddMateriaModal({ setModalOpen }) {
   const [selectedDisciplineCode, setSelectedDisciplineCode] = useState('');
   const [hasSearchedUnb, setHasSearchedUnb] = useState(false);
   const [unbHelpMessage, setUnbHelpMessage] = useState('');
+  const searchRequestRef = useRef(0);
+  const abortControllerRef = useRef(null);
 
   useEffect(() => {
     if (mode !== 'unb' || departments.length > 0) {
@@ -63,8 +64,8 @@ function AddMateriaModal({ setModalOpen }) {
         const nextDepartments = await fetchUnbDepartments();
         setDepartments(nextDepartments);
       } catch (error) {
-        setUnbHelpMessage(error.message || 'Não foi possível carregar as unidades da UnB.');
-        addError(error.message || 'Não foi possível carregar as unidades da UnB.');
+        setUnbHelpMessage(error.message || 'Nao foi possivel carregar as unidades da UnB.');
+        addError(error.message || 'Nao foi possivel carregar as unidades da UnB.');
       } finally {
         setLoadingDepartments(false);
       }
@@ -75,21 +76,26 @@ function AddMateriaModal({ setModalOpen }) {
 
   useEffect(() => {
     if (mode !== 'unb' || !selectedDepartment) {
-      return;
-    }
-
-    if (searchTerm.trim().length < 2) {
+      abortControllerRef.current?.abort();
+      setLoadingTurmas(false);
       setDisciplineResults([]);
       setSelectedDisciplineCode('');
+      setHasSearchedUnb(false);
       return;
     }
 
     const timeoutId = window.setTimeout(() => {
-      searchUnbClasses();
-    }, 350);
+      searchUnbClasses(searchTerm);
+    }, 250);
 
     return () => window.clearTimeout(timeoutId);
-  }, [mode, selectedDepartment, selectedTerm, searchTerm]);
+  }, [mode, searchTerm, selectedDepartment, selectedTerm]);
+
+  useEffect(() => {
+    return () => {
+      abortControllerRef.current?.abort();
+    };
+  }, []);
 
   const selectedDepartmentName = useMemo(() => {
     return departments.find((department) => department.id === selectedDepartment)?.name || '';
@@ -128,7 +134,7 @@ function AddMateriaModal({ setModalOpen }) {
         fim: meeting.endTime,
         dataInicio: turma.startDate,
         dataFim: turma.endDate,
-        observacoes: `Turma ${turma.classCode} • ${selectedDepartmentName}`
+        observacoes: `Turma ${turma.classCode} - ${selectedDepartmentName}`
       })
     );
 
@@ -139,7 +145,7 @@ function AddMateriaModal({ setModalOpen }) {
     event.preventDefault();
 
     if (!nome || !horas) {
-      addError('Nome e carga horária são obrigatórios');
+      addError('Nome e carga horaria sao obrigatorios');
       return;
     }
 
@@ -165,16 +171,16 @@ function AddMateriaModal({ setModalOpen }) {
       };
 
       await adicionarMateria(sanitizeMateria(novaMateria));
-      addSuccess('Matéria adicionada com sucesso!');
+      addSuccess('Materia adicionada com sucesso!');
       setModalOpen(false);
-    } catch (error) {
-      addError('Erro ao adicionar matéria');
+    } catch (_error) {
+      addError('Erro ao adicionar materia');
     }
   };
 
   const adicionarAvaliacao = () => {
     if (!novaAvaliacao.tipo || !novaAvaliacao.data) {
-      addError('Tipo e data são obrigatórios para a avaliação');
+      addError('Tipo e data sao obrigatorios para a avaliacao');
       return;
     }
 
@@ -184,39 +190,63 @@ function AddMateriaModal({ setModalOpen }) {
       data: '',
       descricao: ''
     });
-    addSuccess('Avaliação adicionada!');
+    addSuccess('Avaliacao adicionada!');
   };
 
   const removerAvaliacao = (id) => {
     setAvaliacoes((current) => current.filter((avaliacao) => avaliacao.id !== id));
   };
 
-  const searchUnbClasses = async () => {
+  const searchUnbClasses = async (rawTerm = searchTerm) => {
     if (!selectedDepartment) {
       addError('Selecione uma unidade da UnB antes de buscar.');
       return;
     }
 
+    const nextQuery = rawTerm.trim();
+
+    const requestId = searchRequestRef.current + 1;
+    searchRequestRef.current = requestId;
+
+    abortControllerRef.current?.abort();
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
     try {
       setLoadingTurmas(true);
       setHasSearchedUnb(true);
       setSelectedDisciplineCode('');
+      setDisciplineResults([]);
       setUnbHelpMessage('');
+
       const results = await fetchUnbClasses({
         department: selectedDepartment,
         year: selectedYear,
         period: selectedPeriod,
-        query: searchTerm
+        query: nextQuery,
+        signal: controller.signal
       });
+
+      if (requestId !== searchRequestRef.current) {
+        return;
+      }
+
       setDisciplineResults(results);
+
       if (results.length === 1) {
         setSelectedDisciplineCode(results[0].code);
       }
     } catch (error) {
-      setUnbHelpMessage(error.message || 'Não foi possível buscar as turmas da UnB.');
-      addError(error.message || 'Não foi possível buscar as turmas da UnB.');
+      if (error.name === 'AbortError') {
+        return;
+      }
+
+      setUnbHelpMessage(error.message || 'Nao foi possivel buscar as turmas da UnB.');
+      addError(error.message || 'Nao foi possivel buscar as turmas da UnB.');
     } finally {
-      setLoadingTurmas(false);
+      if (abortControllerRef.current === controller && !controller.signal.aborted) {
+        setLoadingTurmas(false);
+      }
     }
   };
 
@@ -245,10 +275,10 @@ function AddMateriaModal({ setModalOpen }) {
 
       await adicionarMateria(importedMateria);
       persistTurmaFromUnb(discipline, turma);
-      addSuccess(`Turma ${turma.classCode} adicionada com horário traduzido.`);
+      addSuccess(`Turma ${turma.classCode} adicionada com horario traduzido.`);
       setModalOpen(false);
-    } catch (error) {
-      addError('Não foi possível importar a turma selecionada.');
+    } catch (_error) {
+      addError('Nao foi possivel importar a turma selecionada.');
     }
   };
 
@@ -261,7 +291,7 @@ function AddMateriaModal({ setModalOpen }) {
           </div>
           <div className="flex items-center justify-between gap-3 px-4 py-3 sm:px-6">
             <div>
-              <h2 className="text-base font-semibold text-gray-800 sm:text-xl">Nova Matéria</h2>
+              <h2 className="text-base font-semibold text-gray-800 sm:text-xl">Nova Materia</h2>
               <p className="text-xs text-gray-500 sm:text-sm">Busque, escolha a turma e adicione</p>
             </div>
             <button
@@ -297,19 +327,19 @@ function AddMateriaModal({ setModalOpen }) {
         {mode === 'manual' && (
           <form onSubmit={handleSubmit} className="space-y-4 px-4 py-4 sm:px-6">
             <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700">Nome da Matéria</label>
+              <label className="mb-1 block text-sm font-medium text-gray-700">Nome da Materia</label>
               <input
                 type="text"
                 value={nome}
                 onChange={(event) => setNome(event.target.value)}
                 className="w-full rounded-md border px-3 py-2 text-sm"
-                placeholder="Ex: Cálculo 1"
+                placeholder="Ex: Calculo 1"
                 required
               />
             </div>
 
             <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700">Carga Horária</label>
+              <label className="mb-1 block text-sm font-medium text-gray-700">Carga Horaria</label>
               <select
                 value={horas}
                 onChange={(event) => setHoras(event.target.value)}
@@ -345,7 +375,7 @@ function AddMateriaModal({ setModalOpen }) {
                 onClick={() => setMostrarAvaliacoes(!mostrarAvaliacoes)}
                 className="flex items-center text-sm text-blue-600 hover:text-blue-700"
               >
-                <FaPlus className="mr-1" /> {mostrarAvaliacoes ? 'Ocultar Avaliações' : 'Adicionar Avaliações'}
+                <FaPlus className="mr-1" /> {mostrarAvaliacoes ? 'Ocultar Avaliacoes' : 'Adicionar Avaliacoes'}
               </button>
             </div>
 
@@ -358,7 +388,7 @@ function AddMateriaModal({ setModalOpen }) {
                       value={novaAvaliacao.tipo}
                       onChange={(event) => setNovaAvaliacao((current) => ({ ...current, tipo: event.target.value }))}
                       className="min-w-0 w-full rounded-md border px-3 py-2 text-sm sm:flex-1"
-                      placeholder="Tipo (ex: Prova, Trabalho, Seminário)"
+                      placeholder="Tipo (ex: Prova, Trabalho, Seminario)"
                       required
                     />
                     <button
@@ -410,7 +440,7 @@ function AddMateriaModal({ setModalOpen }) {
                         setNovaAvaliacao((current) => ({ ...current, descricao: event.target.value }))
                       }
                       className="min-w-0 w-full rounded-md border px-3 py-2 text-sm sm:flex-1"
-                      placeholder="Descrição (opcional)"
+                      placeholder="Descricao (opcional)"
                     />
                     <button
                       type="button"
@@ -457,7 +487,7 @@ function AddMateriaModal({ setModalOpen }) {
             )}
 
             <button type="submit" className="btn-primary w-full justify-center">
-              Adicionar matéria
+              Adicionar materia
             </button>
           </form>
         )}
@@ -483,7 +513,7 @@ function AddMateriaModal({ setModalOpen }) {
               </div>
 
               <div>
-                <label className="mb-1 block text-sm font-medium text-gray-700">Semestre disponível</label>
+                <label className="mb-1 block text-sm font-medium text-gray-700">Semestre disponivel</label>
                 <select
                   value={selectedTerm}
                   onChange={(event) => setSelectedTerm(event.target.value)}
@@ -504,35 +534,37 @@ function AddMateriaModal({ setModalOpen }) {
                 value={searchTerm}
                 onChange={(event) => setSearchTerm(event.target.value)}
                 className="w-full rounded-xl border px-3 py-3 text-sm"
-                placeholder="Digite nome, codigo, turma ou docente"
+                placeholder="Filtre por nome, codigo, turma ou docente"
                 onKeyDown={(event) => {
                   if (event.key === 'Enter') {
                     event.preventDefault();
-                    searchUnbClasses();
+                    searchUnbClasses(event.currentTarget.value);
                   }
                 }}
               />
               <button
                 type="button"
-                onClick={searchUnbClasses}
+                onClick={() => searchUnbClasses(searchTerm)}
                 className="btn-primary inline-flex items-center justify-center gap-2"
-                disabled={loadingTurmas}
+                disabled={loadingTurmas || !selectedDepartment}
               >
                 <FaSearch />
                 {loadingTurmas ? 'Buscando...' : 'Buscar'}
               </button>
             </div>
 
-            {unbHelpMessage ? (
-              <p className="text-sm text-rose-600">{unbHelpMessage}</p>
-            ) : null}
+            {unbHelpMessage ? <p className="text-sm text-rose-600">{unbHelpMessage}</p> : null}
 
             <div className="space-y-4">
               {disciplineResults.length === 0 ? (
                 <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-5 text-sm text-slate-500">
-                  {hasSearchedUnb
-                    ? 'Nenhuma disciplina encontrada com esse termo. Tente buscar por nome, código ou parte do nome.'
-                    : 'Escolha a unidade e comece a digitar para listar disciplinas.'}
+                  {loadingTurmas
+                    ? 'Buscando disciplinas da UnB...'
+                    : hasSearchedUnb
+                        ? searchTerm.trim().length > 0
+                          ? 'Nenhuma disciplina encontrada com esse termo. Tente buscar por nome, codigo ou parte do nome.'
+                          : 'Nenhuma disciplina disponivel para essa unidade no semestre selecionado.'
+                        : 'Escolha a unidade e comece a digitar para listar disciplinas.'}
                 </div>
               ) : selectedDiscipline ? (
                 <div className="space-y-4">
@@ -551,7 +583,7 @@ function AddMateriaModal({ setModalOpen }) {
                     <h3 className="mt-1 text-lg font-semibold text-slate-900">{selectedDiscipline.name}</h3>
                     <p className="mt-2 text-sm text-slate-600">
                       {selectedDiscipline.classes.length} turma{selectedDiscipline.classes.length > 1 ? 's' : ''}{' '}
-                      disponível{selectedDiscipline.classes.length > 1 ? 'eis' : ''}
+                      disponivel{selectedDiscipline.classes.length > 1 ? 'eis' : ''}
                     </p>
                   </div>
 
@@ -591,9 +623,9 @@ function AddMateriaModal({ setModalOpen }) {
                             </div>
 
                             <p className="mt-3 text-xs text-slate-500">
-                              Código SIGAA: {turma.scheduleCode}
-                              {turma.classroom ? ` • Sala: ${turma.classroom}` : ''}
-                              {turma.startDate && turma.endDate ? ` • ${turma.startDate} até ${turma.endDate}` : ''}
+                              Codigo SIGAA: {turma.scheduleCode}
+                              {turma.classroom ? ` - Sala: ${turma.classroom}` : ''}
+                              {turma.startDate && turma.endDate ? ` - ${turma.startDate} ate ${turma.endDate}` : ''}
                             </p>
                           </div>
 
@@ -602,7 +634,7 @@ function AddMateriaModal({ setModalOpen }) {
                             onClick={() => importUnbClass(selectedDiscipline, turma)}
                             className="rounded-xl bg-emerald-700 px-4 py-3 text-sm font-semibold text-white hover:bg-emerald-800"
                           >
-                            Adicionar à lista
+                            Adicionar a lista
                           </button>
                         </div>
                       </div>

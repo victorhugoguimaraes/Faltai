@@ -94,7 +94,7 @@ function MateriaList({
     });
 
   return (
-    <div className="space-y-4 sm:space-y-5">
+    <div className="space-y-4 pb-28 sm:space-y-5 sm:pb-10">
       {turmas.length > 0 && (
         <section className="rounded-[1.75rem] border border-white/80 bg-white/85 p-4 shadow-soft backdrop-blur-xl sm:p-6">
           <div className="mb-4 flex items-center justify-between gap-3">
@@ -251,11 +251,11 @@ function MateriaList({
                 </div>
               </div>
               
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <span className={`text-sm font-medium ${textColor} transition-colors duration-300`}>
                   Atualize as faltas sem abrir outra tela
                 </span>
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 self-end sm:self-auto">
                   <button
                     onClick={() => handleFaltaChange(index, -1)}
                     disabled={materia.faltas <= 0}

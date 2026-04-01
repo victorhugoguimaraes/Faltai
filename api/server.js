@@ -1,6 +1,11 @@
 const express = require('express');
 const cors = require('cors');
-const { getInitialForm, parseDepartments, searchTurmas } = require('./unb/sigaa');
+const {
+  getInitialForm,
+  parseDepartments,
+  searchTurmas,
+  filterDisciplinesByQuery
+} = require('./unb/sigaa');
 
 const app = express();
 const port = Number(process.env.PORT || process.env.UNB_API_PORT || 8787);
@@ -14,8 +19,11 @@ const allowedOrigins = String(process.env.CORS_ORIGINS || '')
 const cache = {
   departments: null,
   departmentsAt: 0,
-  searches: new Map()
+  baseSearches: new Map()
 };
+
+const DEPARTMENTS_TTL = 1000 * 60 * 60 * 6;
+const SEARCH_TTL = 1000 * 60 * 30;
 
 app.use(
   cors({
@@ -47,7 +55,7 @@ app.get('/api/unb/departamentos', async (_req, res) => {
   try {
     const now = Date.now();
 
-    if (cache.departments && now - cache.departmentsAt < 1000 * 60 * 60 * 6) {
+    if (cache.departments && now - cache.departmentsAt < DEPARTMENTS_TTL) {
       res.json({ departments: cache.departments, cached: true });
       return;
     }
@@ -79,18 +87,27 @@ app.get('/api/unb/turmas', async (req, res) => {
       return;
     }
 
-    const cacheKey = `${department}:${year}:${period}:${query}`;
-    const cached = cache.searches.get(cacheKey);
+    const cacheKey = `${department}:${year}:${period}`;
+    const cached = cache.baseSearches.get(cacheKey);
 
-    if (cached && Date.now() - cached.at < 1000 * 60 * 30) {
-      res.json({ disciplines: cached.data, cached: true });
-      return;
+    let disciplines;
+    let cachedBase = false;
+
+    if (cached && Date.now() - cached.at < SEARCH_TTL) {
+      disciplines = cached.data;
+      cachedBase = true;
+    } else {
+      disciplines = await searchTurmas({ department, year, period });
+      cache.baseSearches.set(cacheKey, { data: disciplines, at: Date.now() });
     }
 
-    const disciplines = await searchTurmas({ department, year, period, query });
-    cache.searches.set(cacheKey, { data: disciplines, at: Date.now() });
+    const filteredDisciplines = filterDisciplinesByQuery(disciplines, query);
 
-    res.json({ disciplines, cached: false });
+    res.json({
+      disciplines: filteredDisciplines,
+      cached: cachedBase,
+      queryCached: Boolean(query) && cachedBase
+    });
   } catch (error) {
     res.status(500).json({
       message: 'Não foi possível consultar as turmas da UnB.',

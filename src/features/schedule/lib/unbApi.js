@@ -23,12 +23,16 @@ const withBaseUrl = (path) => {
   return apiBaseUrl ? `${apiBaseUrl}${path}` : path;
 };
 
-async function requestJson(path) {
+async function requestJson(path, options = {}) {
   let response;
 
   try {
-    response = await fetch(withBaseUrl(path));
+    response = await fetch(withBaseUrl(path), options);
   } catch (error) {
+    if (error.name === 'AbortError') {
+      throw error;
+    }
+
     throw new Error(
       'A API local da UnB não respondeu. Inicie `npm run dev:api` ou configure `VITE_UNB_API_URL`.'
     );
@@ -47,7 +51,7 @@ export const fetchUnbDepartments = async () => {
   return data.departments || [];
 };
 
-export const fetchUnbClasses = async ({ department, year, period, query }) => {
+export const fetchUnbClasses = async ({ department, year, period, query, signal }) => {
   const params = new URLSearchParams({
     department: String(department),
     year: String(year),
@@ -55,6 +59,6 @@ export const fetchUnbClasses = async ({ department, year, period, query }) => {
     query: query || ''
   });
 
-  const data = await requestJson(`/api/unb/turmas?${params.toString()}`);
+  const data = await requestJson(`/api/unb/turmas?${params.toString()}`, { signal });
   return data.disciplines || [];
 };
