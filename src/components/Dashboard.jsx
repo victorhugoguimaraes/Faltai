@@ -236,7 +236,7 @@ function Dashboard({ onClose }) {
         <MetricCard
           icon={<FaCalendarWeek />}
           eyebrow="Proxima avaliacao"
-          title={overview.nextEvaluations[0] ? overview.nextEvaluations[0].materia : 'Nada imminente'}
+          title={overview.nextEvaluations[0] ? overview.nextEvaluations[0].materia : 'Nada iminente'}
           text={
             overview.nextEvaluations[0]
               ? `${overview.nextEvaluations[0].tipo} em ${new Date(overview.nextEvaluations[0].data).toLocaleDateString('pt-BR')} • ${formatEvaluationCountdown(overview.nextEvaluations[0].data)}`
