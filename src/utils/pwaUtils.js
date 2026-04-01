@@ -1,10 +1,19 @@
 import { getPublicAssetPath } from './assets';
 
+let deferredPrompt = null;
+const installPromptListeners = new Set();
+
+const notifyInstallPromptListeners = () => {
+  const available = Boolean(deferredPrompt);
+  installPromptListeners.forEach((listener) => listener(available));
+};
+
 export const registerServiceWorker = () => {
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
       const swPath = getPublicAssetPath('/sw/sw.js');
-      navigator.serviceWorker.register(swPath)
+      navigator.serviceWorker
+        .register(swPath)
         .then((registration) => {
           console.log('Service Worker registrado com sucesso:', registration.scope);
         })
@@ -17,7 +26,7 @@ export const registerServiceWorker = () => {
 
 export const requestNotificationPermission = async () => {
   if (!('Notification' in window)) {
-    console.log('Este browser não suporta notificações');
+    console.log('Este browser nao suporta notificacoes');
     return false;
   }
 
@@ -25,20 +34,19 @@ export const requestNotificationPermission = async () => {
     return true;
   }
 
-  if (Notification.permission !== 'denied') {
-    const permission = await Notification.requestPermission();
-    return permission === 'granted';
+  if (Notification.permission === 'denied') {
+    return false;
   }
 
-  return false;
+  const permission = await Notification.requestPermission();
+  return permission === 'granted';
 };
 
-// Enviar notificação local
 export const sendLocalNotification = (title, options = {}) => {
   if (Notification.permission === 'granted') {
     const iconPath = getPublicAssetPath('/icon-192.png');
     new Notification(title, {
-      body: options.body || 'Nova notificação do Faltaí',
+      body: options.body || 'Nova notificacao do Faltai',
       icon: iconPath,
       badge: iconPath,
       ...options
@@ -46,65 +54,107 @@ export const sendLocalNotification = (title, options = {}) => {
   }
 };
 
-// Agendar notificação de lembrete
 export const scheduleReminderNotification = (materia, minutosAntes = 60) => {
-  const proximasAvaliacoes = materia.avaliacoes?.filter(av => {
-    const dataAv = new Date(av.data);
-    const agora = new Date();
-    return dataAv > agora;
-  }) || [];
+  const proximasAvaliacoes =
+    materia.avaliacoes?.filter((avaliacao) => {
+      const dataAvaliacao = new Date(avaliacao.data);
+      const agora = new Date();
+      return dataAvaliacao > agora;
+    }) || [];
 
-  proximasAvaliacoes.forEach(avaliacao => {
-    const dataAv = new Date(avaliacao.data);
-    const tempoLembrete = dataAv.getTime() - (minutosAntes * 60 * 1000);
-    const agora = Date.now();
+  proximasAvaliacoes.forEach((avaliacao) => {
+    const dataAvaliacao = new Date(avaliacao.data);
+    const reminderTime = dataAvaliacao.getTime() - minutosAntes * 60 * 1000;
+    const now = Date.now();
 
-    if (tempoLembrete > agora) {
+    if (reminderTime > now) {
       setTimeout(() => {
-        sendLocalNotification(
-          `${avaliacao.tipo} em ${minutosAntes} minutos!`,
-          {
-            body: `${materia.nome} - ${avaliacao.descricao || avaliacao.tipo}`,
-            tag: `reminder-${avaliacao.id}`,
-            requireInteraction: true
-          }
-        );
-      }, tempoLembrete - agora);
+        sendLocalNotification(`${avaliacao.tipo} em ${minutosAntes} minutos`, {
+          body: `${materia.nome} - ${avaliacao.descricao || avaliacao.tipo}`,
+          tag: `reminder-${avaliacao.id}`,
+          requireInteraction: true
+        });
+      }, reminderTime - now);
     }
   });
 };
 
-// Verificar se está no modo standalone (PWA instalado)
 export const isStandaloneMode = () => {
-  return window.matchMedia('(display-mode: standalone)').matches ||
-         window.navigator.standalone ||
-         document.referrer.includes('android-app://');
+  return (
+    window.matchMedia('(display-mode: standalone)').matches ||
+    window.navigator.standalone ||
+    document.referrer.includes('android-app://')
+  );
 };
 
-// Verificar se pode instalar PWA
 export const canInstallPWA = () => {
-  return !isStandaloneMode() && 'serviceWorker' in navigator;
+  return !isStandaloneMode() && 'serviceWorker' in navigator && Boolean(deferredPrompt);
 };
 
-// Mostrar prompt de instalação
-let deferredPrompt = null;
+if (typeof window !== 'undefined') {
+  window.addEventListener('beforeinstallprompt', (event) => {
+    event.preventDefault();
+    deferredPrompt = event;
+    notifyInstallPromptListeners();
+  });
 
-window.addEventListener('beforeinstallprompt', (e) => {
-  e.preventDefault();
-  deferredPrompt = e;
-});
+  window.addEventListener('appinstalled', () => {
+    deferredPrompt = null;
+    notifyInstallPromptListeners();
+  });
+}
+
+export const onInstallPromptChange = (callback) => {
+  installPromptListeners.add(callback);
+  callback(Boolean(deferredPrompt));
+
+  return () => {
+    installPromptListeners.delete(callback);
+  };
+};
 
 export const showInstallPrompt = async () => {
-  if (deferredPrompt) {
-    deferredPrompt.prompt();
-    const { outcome } = await deferredPrompt.userChoice;
-    deferredPrompt = null;
-    return outcome === 'accepted';
+  if (!deferredPrompt) {
+    return false;
   }
+
+  deferredPrompt.prompt();
+  const { outcome } = await deferredPrompt.userChoice;
+  deferredPrompt = null;
+  notifyInstallPromptListeners();
+  return outcome === 'accepted';
+};
+
+export const getNotificationPermissionState = () => {
+  if (!('Notification' in window)) {
+    return 'unsupported';
+  }
+
+  return Notification.permission;
+};
+
+export const updateAppBadge = async (count = 0) => {
+  if (typeof navigator === 'undefined') {
+    return false;
+  }
+
+  try {
+    if (count > 0 && 'setAppBadge' in navigator) {
+      await navigator.setAppBadge(count);
+      return true;
+    }
+
+    if ('clearAppBadge' in navigator) {
+      await navigator.clearAppBadge();
+      return true;
+    }
+  } catch (error) {
+    console.warn('Nao foi possivel atualizar o badge do app:', error);
+  }
+
   return false;
 };
 
-// Gerenciar dados offline
 export const saveOfflineData = (key, data) => {
   try {
     const offlineData = JSON.parse(localStorage.getItem('offlineData') || '{}');
@@ -141,18 +191,16 @@ export const markAsSynced = (key) => {
   }
 };
 
-// Background sync (quando voltar online)
 export const scheduleBackgroundSync = (tag) => {
   if ('serviceWorker' in navigator && 'sync' in window.ServiceWorkerRegistration.prototype) {
-    navigator.serviceWorker.ready.then((registration) => {
-      return registration.sync.register(tag);
-    }).catch((error) => {
-      console.error('Erro ao agendar sincronização:', error);
-    });
+    navigator.serviceWorker.ready
+      .then((registration) => registration.sync.register(tag))
+      .catch((error) => {
+        console.error('Erro ao agendar sincronizacao:', error);
+      });
   }
 };
 
-// Detectar status de conexão
 export const isOnline = () => navigator.onLine;
 
 export const onConnectionChange = (callback) => {

@@ -1,152 +1,141 @@
-const CACHE_NAME = 'faltai-v1.0.0';
-const urlsToCache = [
-  '/',
-  '/static/js/bundle.js',
-  '/static/css/main.css',
-  '/manifest.json',
-  '/icon-192.png',
-  '/icon-512.png'
-];
+const CACHE_NAME = 'faltai-runtime-v2';
+const SAME_ORIGIN_DESTINATIONS = new Set(['document', 'script', 'style', 'image', 'font']);
 
-// Instalar Service Worker
+const resolveAssetUrl = (relativePath) => new URL(relativePath, self.registration.scope).toString();
+
 self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then((cache) => {
-        console.log('Service Worker: Cache aberto');
-        return cache.addAll(urlsToCache);
-      })
-  );
+  event.waitUntil(self.skipWaiting());
 });
 
-// Interceptar requisições
-self.addEventListener('fetch', (event) => {
-  event.respondWith(
-    caches.match(event.request)
-      .then((response) => {
-        // Cache hit - retorna resposta do cache
-        if (response) {
-          return response;
-        }
-        return fetch(event.request);
-      }
-    )
-  );
-});
-
-// Atualizar Service Worker
 self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches.keys().then((cacheNames) => {
-      return Promise.all(
-        cacheNames.map((cacheName) => {
-          if (cacheName !== CACHE_NAME) {
-            console.log('Service Worker: Removendo cache antigo', cacheName);
-            return caches.delete(cacheName);
+    Promise.all([
+      self.clients.claim(),
+      caches.keys().then((cacheNames) =>
+        Promise.all(
+          cacheNames
+            .filter((cacheName) => cacheName !== CACHE_NAME)
+            .map((cacheName) => caches.delete(cacheName))
+        )
+      )
+    ])
+  );
+});
+
+self.addEventListener('fetch', (event) => {
+  const { request } = event;
+  const requestUrl = new URL(request.url);
+
+  if (request.method !== 'GET' || requestUrl.origin !== self.location.origin) {
+    return;
+  }
+
+  if (requestUrl.pathname.includes('/api/')) {
+    event.respondWith(fetch(request));
+    return;
+  }
+
+  if (!SAME_ORIGIN_DESTINATIONS.has(request.destination) && request.mode !== 'navigate') {
+    return;
+  }
+
+  event.respondWith(
+    caches.open(CACHE_NAME).then(async (cache) => {
+      const cachedResponse = await cache.match(request);
+
+      try {
+        const networkResponse = await fetch(request);
+
+        if (networkResponse.ok) {
+          cache.put(request, networkResponse.clone());
+        }
+
+        return networkResponse;
+      } catch (error) {
+        if (cachedResponse) {
+          return cachedResponse;
+        }
+
+        if (request.mode === 'navigate') {
+          const cachedRoot = await cache.match(resolveAssetUrl('../'));
+          if (cachedRoot) {
+            return cachedRoot;
           }
-        })
-      );
+        }
+
+        throw error;
+      }
     })
   );
 });
 
-// Notificações Push
 self.addEventListener('push', (event) => {
   let data = {};
-  
+
   if (event.data) {
     try {
       data = event.data.json();
-    } catch (e) {
-      data = { title: 'Faltaí', body: event.data.text() };
+    } catch (error) {
+      data = { title: 'Faltai', body: event.data.text() };
     }
   }
-  
+
   const options = {
-    body: data.body || 'Nova notificação do Faltaí',
-    icon: '/icon-192.png',
-    badge: '/icon-192.png',
+    body: data.body || 'Nova notificacao do Faltai',
+    icon: resolveAssetUrl('../icon-192.png'),
+    badge: resolveAssetUrl('../icon-192.png'),
     vibrate: [200, 100, 200],
     requireInteraction: true,
     tag: data.tag || 'faltai-notification',
     data: {
       dateOfArrival: Date.now(),
-      url: data.url || '/',
+      url: data.url || self.registration.scope,
       ...data
     },
     actions: [
       {
         action: 'open',
-        title: 'Abrir App',
-        icon: '/icon-192.png'
+        title: 'Abrir app'
       },
       {
         action: 'close',
-        title: 'Dispensar',
-        icon: '/icon-192.png'
+        title: 'Dispensar'
       }
     ]
   };
 
-  event.waitUntil(
-    self.registration.showNotification(data.title || 'Faltaí', options)
-  );
+  event.waitUntil(self.registration.showNotification(data.title || 'Faltai', options));
 });
 
-// Click em notificação
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
 
-  if (event.action === 'open' || event.action === 'explore' || !event.action) {
-    // Abrir a aplicação
-    event.waitUntil(
-      self.clients.matchAll({ type: 'window' }).then((clientList) => {
-        // Se já há uma janela aberta, foca nela
-        for (const client of clientList) {
-          if (client.url.includes(self.location.origin) && 'focus' in client) {
-            return client.focus();
-          }
-        }
-        // Caso contrário, abre uma nova janela
-        if (self.clients.openWindow) {
-          return self.clients.openWindow('/');
-        }
-      })
-    );
+  if (event.action === 'close') {
+    return;
   }
+
+  const targetUrl = event.notification.data?.url || self.registration.scope;
+
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+      for (const client of clientList) {
+        if (client.url.startsWith(self.registration.scope) && 'focus' in client) {
+          client.navigate?.(targetUrl);
+          return client.focus();
+        }
+      }
+
+      if (self.clients.openWindow) {
+        return self.clients.openWindow(targetUrl);
+      }
+
+      return null;
+    })
+  );
 });
 
-// Background Sync para sincronização offline
 self.addEventListener('sync', (event) => {
   if (event.tag === 'sync-materias') {
-    event.waitUntil(syncMaterias());
+    event.waitUntil(Promise.resolve());
   }
 });
-
-async function syncMaterias() {
-  try {
-    // Lógica para sincronizar dados quando voltar online
-    const offlineData = await getOfflineData();
-    if (offlineData) {
-      await sendDataToServer(offlineData);
-      await clearOfflineData();
-    }
-  } catch (error) {
-    console.error('Erro na sincronização:', error);
-  }
-}
-
-async function getOfflineData() {
-  // Implementar lógica para pegar dados offline
-  return null;
-}
-
-async function sendDataToServer(data) {
-  // Implementar envio para servidor
-  return null;
-}
-
-async function clearOfflineData() {
-  // Limpar dados offline após sincronização
-  return null;
-}

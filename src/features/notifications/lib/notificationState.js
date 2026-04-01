@@ -12,19 +12,55 @@ const getEvaluationLabel = (tipo) => {
   return 'compromisso';
 };
 
+export const reminderWeekdays = [
+  { value: 0, label: 'Domingo' },
+  { value: 1, label: 'Segunda' },
+  { value: 2, label: 'Terca' },
+  { value: 3, label: 'Quarta' },
+  { value: 4, label: 'Quinta' },
+  { value: 5, label: 'Sexta' },
+  { value: 6, label: 'Sabado' }
+];
+
 export const defaultNotificationSettings = {
   evaluationReminders: true,
   weeklyReminders: true,
   attendanceAlerts: true,
-  systemNotifications: true
+  systemNotifications: true,
+  weeklyReminderDay: 6,
+  weeklyReminderTime: '13:00'
+};
+
+export const normalizeNotificationSettings = (settings = {}) => {
+  const merged = {
+    ...defaultNotificationSettings,
+    ...(settings || {})
+  };
+
+  const reminderDay = Number(merged.weeklyReminderDay);
+  const validDay = Number.isInteger(reminderDay) && reminderDay >= 0 && reminderDay <= 6 ? reminderDay : 6;
+  const validTime = /^\d{2}:\d{2}$/.test(String(merged.weeklyReminderTime))
+    ? String(merged.weeklyReminderTime)
+    : '13:00';
+
+  return {
+    ...merged,
+    evaluationReminders: Boolean(merged.evaluationReminders),
+    weeklyReminders: Boolean(merged.weeklyReminders),
+    attendanceAlerts: Boolean(merged.attendanceAlerts),
+    systemNotifications: Boolean(merged.systemNotifications),
+    weeklyReminderDay: validDay,
+    weeklyReminderTime: validTime
+  };
 };
 
 export const loadNotificationSettings = () =>
-  getStorageValue(storageKeys.notificationSettings, defaultNotificationSettings);
+  normalizeNotificationSettings(getStorageValue(storageKeys.notificationSettings, defaultNotificationSettings));
 
 export const persistNotificationSettings = (settings) => {
-  setStorageValue(storageKeys.notificationSettings, settings);
-  return settings;
+  const normalized = normalizeNotificationSettings(settings);
+  setStorageValue(storageKeys.notificationSettings, normalized);
+  return normalized;
 };
 
 export const pruneNotifications = (notifications) => {
@@ -69,10 +105,11 @@ export const buildEvaluationNotifications = (materias, now = new Date()) => {
 
       let mensagem = '';
       const tipoLabel = getEvaluationLabel(avaliacao.tipo);
+
       if (diasAteAvaliacao === 0) {
         mensagem = `Hoje tem ${tipoLabel} de ${avaliacao.materia}`;
       } else if (diasAteAvaliacao === 1) {
-        mensagem = `Amanhã tem ${tipoLabel} de ${avaliacao.materia}`;
+        mensagem = `Amanha tem ${tipoLabel} de ${avaliacao.materia}`;
       } else if (diasAteAvaliacao <= 7) {
         mensagem = `Daqui a ${diasAteAvaliacao} dias tem ${tipoLabel} de ${avaliacao.materia}`;
       } else {
@@ -82,7 +119,7 @@ export const buildEvaluationNotifications = (materias, now = new Date()) => {
 
       return {
         id: notificationId,
-        titulo: avaliacao.tipo === 'PROVA' ? '📝 Prova Próxima' : '📚 Compromisso Próximo',
+        titulo: avaliacao.tipo === 'PROVA' ? 'Prova proxima' : 'Compromisso proximo',
         mensagem,
         tipo: 'info',
         timestamp: now,
@@ -97,29 +134,8 @@ export const buildAttendanceNotifications = (materias, now = new Date()) =>
     .filter((materia) => materia.faltas >= materia.maxFaltas)
     .map((materia) => ({
       id: `max-faltas-${materia.nome}`,
-      titulo: '⚠️ Limite de Faltas',
-      mensagem: `Você atingiu o limite de faltas em ${materia.nome}`,
+      titulo: 'Limite de faltas',
+      mensagem: `Voce atingiu o limite de faltas em ${materia.nome}`,
       tipo: 'alerta',
       timestamp: now
     }));
-
-export const formatTimeAgo = (date) => {
-  const seconds = Math.floor((new Date() - new Date(date)) / 1000);
-  const intervals = {
-    ano: 31536000,
-    mês: 2592000,
-    semana: 604800,
-    dia: 86400,
-    hora: 3600,
-    minuto: 60
-  };
-
-  for (const [unit, secondsInUnit] of Object.entries(intervals)) {
-    const interval = Math.floor(seconds / secondsInUnit);
-    if (interval >= 1) {
-      return `há ${interval} ${unit}${interval > 1 ? (unit === 'mês' ? 'es' : 's') : ''}`;
-    }
-  }
-
-  return 'agora mesmo';
-};

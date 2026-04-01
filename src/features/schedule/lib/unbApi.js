@@ -1,25 +1,7 @@
-import { getEnvValue } from '../../../lib/env';
-
-const configuredApiBaseUrl = getEnvValue('VITE_UNB_API_URL', 'UNB_API_URL', '').replace(/\/$/, '');
-
-const resolveApiBaseUrl = () => {
-  if (configuredApiBaseUrl) {
-    return configuredApiBaseUrl;
-  }
-
-  if (typeof window !== 'undefined') {
-    const { hostname } = window.location;
-
-    if (hostname === 'localhost' || hostname === '127.0.0.1') {
-      return 'http://localhost:8787';
-    }
-  }
-
-  return '';
-};
+import { getApiBaseUrl } from '../../../lib/env';
 
 const withBaseUrl = (path) => {
-  const apiBaseUrl = resolveApiBaseUrl();
+  const apiBaseUrl = getApiBaseUrl();
   return apiBaseUrl ? `${apiBaseUrl}${path}` : path;
 };
 

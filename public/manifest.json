@@ -1,6 +1,14 @@
 {
-  "short_name": "Faltaí",
-  "name": "Faltaí - Controle de Faltas",
+  "id": "/Faltai/",
+  "short_name": "Faltai",
+  "name": "Faltai - Controle de Faltas",
+  "description": "Acompanhe faltas, grade e agenda da faculdade em uma experiencia mobile-first.",
+  "start_url": "./",
+  "scope": "/Faltai/",
+  "display": "standalone",
+  "theme_color": "#0f172a",
+  "background_color": "#f5f1e8",
+  "orientation": "portrait",
   "icons": [
     {
       "src": "favicon.ico",
@@ -43,9 +51,45 @@
       "sizes": "180x180"
     }
   ],
-  "start_url": ".",
-  "display": "standalone",
-  "theme_color": "#3b82f6",
-  "background_color": "#3b82f6",
-  "orientation": "portrait"
+  "shortcuts": [
+    {
+      "name": "Adicionar materia",
+      "short_name": "Adicionar",
+      "description": "Abrir o fluxo de cadastro de materia",
+      "url": "./?action=add-materia",
+      "icons": [
+        {
+          "src": "icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Revisar faltas",
+      "short_name": "Faltas",
+      "description": "Ir direto para a lista de materias",
+      "url": "./?action=review-faltas",
+      "icons": [
+        {
+          "src": "icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Abrir agenda",
+      "short_name": "Agenda",
+      "description": "Ir direto para a agenda do semestre",
+      "url": "./?view=agenda",
+      "icons": [
+        {
+          "src": "icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    }
+  ]
 }
