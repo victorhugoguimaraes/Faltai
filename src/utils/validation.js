@@ -214,6 +214,11 @@ export const sanitizeMateria = (materia) => {
     avaliacoes: materia.avaliacoes || [],
     faltas: materia.faltas || 0,
     maxFaltas: calculateMaxFaltas(materia.horas, materia.pesoFalta),
-    id: materia.id || Date.now()
+    id: materia.id || Date.now(),
+    datasFaltas: materia.datasFaltas || [],
+    lastFaltasUpdateAt: materia.lastFaltasUpdateAt || null,
+    local: materia.local?.trim() || '',
+    horarioResumo: Array.isArray(materia.horarioResumo) ? materia.horarioResumo : [],
+    turmaUnb: materia.turmaUnb || null
   };
 };

@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { FaTimes, FaPlus } from 'react-icons/fa';
+import React, { useEffect, useState } from 'react';
+import { FaPlus, FaTimes } from 'react-icons/fa';
 import { useMaterias } from '../contexts/MateriasContext';
 import { useError } from '../contexts/ErrorContext';
 import { calculateMaxFaltas } from '../utils/validation';
@@ -7,7 +7,7 @@ import { calculateMaxFaltas } from '../utils/validation';
 function EditMateriaModal({ setEditModalOpen, editIndex }) {
   const { materias, editarMateria } = useMaterias();
   const { addError, addSuccess } = useError();
-  
+
   const [nome, setNome] = useState('');
   const [horas, setHoras] = useState('');
   const [pesoFalta, setPesoFalta] = useState('1');
@@ -33,10 +33,11 @@ function EditMateriaModal({ setEditModalOpen, editIndex }) {
     return null;
   }
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+
     if (!nome || !horas) {
-      addError('Preencha todos os campos obrigatórios');
+      addError('Preencha todos os campos obrigatorios');
       return;
     }
 
@@ -52,21 +53,21 @@ function EditMateriaModal({ setEditModalOpen, editIndex }) {
       };
 
       await editarMateria(editIndex, materiaAtualizada);
-      addSuccess('Matéria editada com sucesso!');
+      addSuccess('Materia editada com sucesso!');
       setEditModalOpen(false);
     } catch (error) {
-      addError('Erro ao salvar matéria');
+      addError('Erro ao salvar materia');
       console.error('Erro:', error);
     }
   };
 
   const adicionarAvaliacao = () => {
     if (!novaAvaliacao.tipo || !novaAvaliacao.data) {
-      addError('Tipo e data são obrigatórios para a avaliação');
+      addError('Tipo e data sao obrigatorios para a avaliacao');
       return;
     }
 
-    setAvaliacoes(prev => [...prev, { ...novaAvaliacao, id: Date.now() }]);
+    setAvaliacoes((current) => [...current, { ...novaAvaliacao, id: Date.now() }]);
     setNovaAvaliacao({
       tipo: '',
       data: '',
@@ -75,163 +76,160 @@ function EditMateriaModal({ setEditModalOpen, editIndex }) {
   };
 
   const removerAvaliacao = (id) => {
-    setAvaliacoes(prev => prev.filter(av => av.id !== id));
+    setAvaliacoes((current) => current.filter((avaliacao) => avaliacao.id !== id));
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg p-6 w-full max-w-md">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-semibold text-gray-800">Editar Matéria</h2>
+    <div className="fixed inset-0 z-[10030] flex items-center justify-center bg-black/60 p-4">
+      <div className="w-full max-w-lg rounded-[2rem] border border-white/70 bg-white/95 p-5 shadow-strong backdrop-blur-xl sm:p-6">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">Materia</p>
+            <h2 className="mt-2 font-display text-2xl font-bold text-slate-950">Editar materia</h2>
+          </div>
           <button
             onClick={() => setEditModalOpen(false)}
-            className="text-gray-500 hover:text-gray-700"
+            className="rounded-2xl border border-slate-200 bg-white p-3 text-slate-500 hover:text-slate-800"
+            aria-label="Fechar"
           >
             <FaTimes />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="mt-6 space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Nome da Matéria
-            </label>
+            <label className="mb-1.5 block text-sm font-medium text-slate-700">Nome da materia</label>
             <input
               type="text"
               value={nome}
-              onChange={(e) => setNome(e.target.value)}
-              className="w-full px-3 py-2 border rounded-md"
-              placeholder="Ex: Cálculo 1"
+              onChange={(event) => setNome(event.target.value)}
+              className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-800"
               required
             />
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Carga Horária
-            </label>
-            <select
-              value={horas}
-              onChange={(e) => setHoras(e.target.value)}
-              className="w-full px-3 py-2 border rounded-md"
-              required
-            >
-              <option value="">Selecione</option>
-              <option value="30">30 horas</option>
-              <option value="45">45 horas</option>
-              <option value="60">60 horas</option>
-              <option value="75">75 horas</option>
-              <option value="90">90 horas</option>
-              <option value="120">120 horas</option>
-            </select>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-slate-700">Carga horaria</label>
+              <select
+                value={horas}
+                onChange={(event) => setHoras(event.target.value)}
+                className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-800"
+                required
+              >
+                <option value="">Selecione</option>
+                <option value="30">30 horas</option>
+                <option value="45">45 horas</option>
+                <option value="60">60 horas</option>
+                <option value="75">75 horas</option>
+                <option value="90">90 horas</option>
+                <option value="120">120 horas</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-slate-700">Peso da falta</label>
+              <select
+                value={pesoFalta}
+                onChange={(event) => setPesoFalta(event.target.value)}
+                className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-800"
+              >
+                <option value="1">1 falta por vez</option>
+                <option value="2">2 faltas por vez</option>
+                <option value="4">4 faltas por vez</option>
+              </select>
+            </div>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Peso da Falta
-            </label>
-            <select
-              value={pesoFalta}
-              onChange={(e) => setPesoFalta(e.target.value)}
-              className="w-full px-3 py-2 border rounded-md"
-            >
-              <option value="1">1 falta por vez</option>
-              <option value="2">2 faltas por vez</option>
-              <option value="4">4 faltas por vez</option>
-            </select>
-          </div>
-
-          <div className="border-t pt-4">
+          <div className="rounded-[1.5rem] border border-slate-200 bg-slate-50 px-4 py-4">
             <button
               type="button"
               onClick={() => setMostrarAvaliacoes(!mostrarAvaliacoes)}
-              className="text-blue-600 hover:text-blue-700 text-sm flex items-center"
+              className="flex items-center gap-2 text-sm font-semibold text-slate-700"
             >
-              <FaPlus className="mr-1" /> {mostrarAvaliacoes ? 'Ocultar Avaliações' : 'Adicionar Avaliações'}
+              <FaPlus className="text-xs" />
+              {mostrarAvaliacoes ? 'Ocultar avaliacoes' : 'Adicionar avaliacoes'}
             </button>
-          </div>
 
-          {mostrarAvaliacoes && (
-            <>
-              <div className="space-y-3 mb-4">
-                <div className="flex gap-2">
+            {mostrarAvaliacoes && (
+              <div className="mt-4 space-y-3">
+                <div className="grid gap-3 sm:grid-cols-2">
                   <input
                     type="text"
                     value={novaAvaliacao.tipo}
-                    onChange={(e) => setNovaAvaliacao(prev => ({ ...prev, tipo: e.target.value }))}
-                    className="px-3 py-2 border rounded-md"
-                    placeholder="Tipo (ex: Prova, Trabalho, Seminário)"
-                    required
+                    onChange={(event) =>
+                      setNovaAvaliacao((current) => ({ ...current, tipo: event.target.value }))
+                    }
+                    className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-800"
+                    placeholder="Tipo da avaliacao"
                   />
                   <input
                     type="date"
                     value={novaAvaliacao.data}
-                    onChange={(e) => setNovaAvaliacao(prev => ({ ...prev, data: e.target.value }))}
-                    className="flex-1 px-3 py-2 border rounded-md"
-                    required
+                    onChange={(event) =>
+                      setNovaAvaliacao((current) => ({ ...current, data: event.target.value }))
+                    }
+                    className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-800"
                   />
                 </div>
-                <div className="flex gap-2">
+
+                <div className="grid gap-3 sm:grid-cols-[1fr_auto]">
                   <input
                     type="text"
                     value={novaAvaliacao.descricao}
-                    onChange={(e) => setNovaAvaliacao(prev => ({ ...prev, descricao: e.target.value }))}
-                    className="flex-1 px-3 py-2 border rounded-md"
-                    placeholder="Descrição (opcional)"
+                    onChange={(event) =>
+                      setNovaAvaliacao((current) => ({ ...current, descricao: event.target.value }))
+                    }
+                    className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-800"
+                    placeholder="Descricao"
                   />
                   <button
                     type="button"
                     onClick={adicionarAvaliacao}
-                    className="px-3 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                    className="rounded-2xl bg-slate-950 px-4 py-3 text-sm font-semibold text-white"
                   >
                     Adicionar
                   </button>
                 </div>
-              </div>
 
-              <div className="space-y-2 max-h-40 overflow-y-auto">
-                {avaliacoes.map(av => (
-                  <div
-                    key={av.id}
-                    className="flex items-center justify-between bg-gray-50 p-2 rounded-md"
-                  >
-                    <div className="flex items-center space-x-2">
-                      <div className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs font-medium">
-                        {av.tipo}
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium">
-                          {new Date(av.data).toLocaleDateString('pt-BR')}
-                        </p>
-                        {av.descricao && (
-                          <p className="text-xs text-gray-500">{av.descricao}</p>
-                        )}
-                      </div>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => removerAvaliacao(av.id)}
-                      className="text-gray-400 hover:text-red-500"
+                <div className="space-y-2">
+                  {avaliacoes.map((avaliacao) => (
+                    <div
+                      key={avaliacao.id}
+                      className="flex items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3"
                     >
-                      <FaTimes />
-                    </button>
-                  </div>
-                ))}
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold text-slate-900">{avaliacao.tipo}</p>
+                        <p className="mt-1 text-xs text-slate-500">
+                          {new Date(avaliacao.data).toLocaleDateString('pt-BR')}
+                          {avaliacao.descricao ? ` • ${avaliacao.descricao}` : ''}
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => removerAvaliacao(avaliacao.id)}
+                        className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-rose-600"
+                      >
+                        Remover
+                      </button>
+                    </div>
+                  ))}
+                </div>
               </div>
-            </>
-          )}
+            )}
+          </div>
 
-          <div className="flex justify-end space-x-2 pt-4">
+          <div className="flex justify-end gap-3 pt-2">
             <button
               type="button"
               onClick={() => setEditModalOpen(false)}
-              className="px-4 py-2 text-gray-600 hover:text-gray-800"
+              className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-600"
             >
               Cancelar
             </button>
             <button
               type="submit"
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              className="rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white"
             >
               Salvar
             </button>

@@ -27,6 +27,17 @@ const eventIcons = {
   OUTRO: <FaBell className="text-fuchsia-500" />
 };
 
+const eventPriority = ['PROVA', 'PRAZO', 'TRABALHO', 'FERIADO', 'AULA', 'OUTRO'];
+
+const eventTileClassByType = {
+  AULA: 'faltai-calendar__tile--aula',
+  PROVA: 'faltai-calendar__tile--prova',
+  TRABALHO: 'faltai-calendar__tile--trabalho',
+  FERIADO: 'faltai-calendar__tile--feriado',
+  PRAZO: 'faltai-calendar__tile--prazo',
+  OUTRO: 'faltai-calendar__tile--outro'
+};
+
 function CalendarioAcademico({ materias, onClose }) {
   const [eventos, setEventos] = useState(loadAcademicEvents);
   const [selectedDate, setSelectedDate] = useState(new Date());
@@ -113,9 +124,16 @@ function CalendarioAcademico({ materias, onClose }) {
 
   const tileClassName = ({ date }) => {
     const classes = ['faltai-calendar__tile'];
+    const eventosNoDia = getEventsForDay(eventos, date);
 
-    if (getEventsForDay(eventos, date).length > 0) {
-      classes.push('faltai-calendar__tile--falta');
+    if (eventosNoDia.length > 0) {
+      const tiposDoDia = [...new Set(eventosNoDia.map((evento) => evento.tipo))];
+      const tipoPrincipal =
+        eventPriority.find((tipo) => tiposDoDia.includes(tipo)) || tiposDoDia[0];
+
+      if (eventTileClassByType[tipoPrincipal]) {
+        classes.push(eventTileClassByType[tipoPrincipal]);
+      }
     }
 
     return classes.join(' ');
@@ -221,10 +239,17 @@ function CalendarioAcademico({ materias, onClose }) {
 
               <div className="rounded-[1.75rem] border border-slate-100 bg-white p-4 shadow-soft">
                 <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">Legenda</p>
+                <div className="mt-3 rounded-2xl bg-slate-50 px-4 py-3 text-sm leading-6 text-slate-600">
+                  A cor do dia mostra o evento mais importante daquele bloco. Os pontos abaixo do numero mostram ate
+                  3 tipos de evento no mesmo dia.
+                </div>
                 <div className="mt-4 grid gap-3 sm:grid-cols-2">
                   {Object.entries(academicEventTypes).map(([key, type]) => (
                     <div key={key} className="flex items-center gap-3 rounded-2xl bg-slate-50 p-3">
-                      <div>{eventIcons[key]}</div>
+                      <div className="flex items-center gap-3">
+                        <span className={`h-3 w-3 rounded-full ${type.dotColor || 'bg-slate-300'}`} />
+                        <div>{eventIcons[key]}</div>
+                      </div>
                       <span className="text-sm font-medium text-slate-700">{type.nome}</span>
                     </div>
                   ))}

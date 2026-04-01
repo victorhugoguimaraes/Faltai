@@ -257,11 +257,7 @@ function MateriaList({
                 />
               </div>
 
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <span className={`text-sm font-medium ${textColor} transition-colors duration-300`}>
-                  Atualize as faltas sem abrir outra tela
-                </span>
-
+              <div className="flex justify-end">
                 <div className="flex items-center gap-3 self-end rounded-[1.25rem] bg-slate-50 px-2.5 py-2 sm:self-auto">
                   <button
                     onClick={() => handleFaltaChange(index, -1)}

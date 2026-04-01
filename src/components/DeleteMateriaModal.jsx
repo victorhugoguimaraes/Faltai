@@ -1,4 +1,5 @@
 import React from 'react';
+import { FaTrashAlt } from 'react-icons/fa';
 import { useMaterias } from '../contexts/MateriasContext';
 import { useError } from '../contexts/ErrorContext';
 
@@ -11,34 +12,44 @@ function DeleteMateriaModal({ setDeleteModalOpen, materiaToDelete }) {
   }
 
   const materia = materias[materiaToDelete];
-  
+
   const handleDeleteMateria = async () => {
     try {
       await excluirMateria(materiaToDelete);
-      addSuccess('Matéria excluída com sucesso!');
+      addSuccess('Materia excluida com sucesso!');
       setDeleteModalOpen(false);
     } catch (error) {
-      addError('Erro ao excluir matéria');
+      addError('Erro ao excluir materia');
       console.error('Erro:', error);
     }
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white p-4 sm:p-6 rounded-2xl shadow-lg w-full max-w-xs sm:max-w-sm">
-        <h2 className="text-lg sm:text-xl font-bold mb-3 sm:mb-4 text-blue-700">Confirmação</h2>
-        <p className="text-xs sm:text-sm text-gray-600 mb-3 sm:mb-4">
-          Deseja excluir "{String(materia?.nome || 'Esta matéria')}"? Ação irreversível.
-        </p>
-        <div className="flex justify-end gap-2">
+    <div className="fixed inset-0 z-[10030] flex items-center justify-center bg-black/60 p-4">
+      <div className="w-full max-w-md rounded-[2rem] border border-white/70 bg-white/95 p-5 shadow-strong backdrop-blur-xl sm:p-6">
+        <div className="flex items-start gap-4">
+          <div className="rounded-[1.2rem] bg-rose-50 p-3 text-rose-600">
+            <FaTrashAlt />
+          </div>
+          <div className="min-w-0">
+            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">Confirmacao</p>
+            <h2 className="mt-2 font-display text-2xl font-bold text-slate-950">Excluir materia</h2>
+            <p className="mt-3 text-sm leading-6 text-slate-600">
+              Deseja excluir <span className="font-semibold text-slate-900">{String(materia?.nome || 'esta materia')}</span>?
+              Essa acao nao pode ser desfeita.
+            </p>
+          </div>
+        </div>
+
+        <div className="mt-6 flex justify-end gap-3">
           <button
-            className="p-1 sm:p-2 bg-gray-400 text-white rounded-2xl hover:bg-gray-500 transition duration-200 text-xs sm:text-sm"
+            className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-600"
             onClick={() => setDeleteModalOpen(false)}
           >
             Cancelar
           </button>
           <button
-            className="p-1 sm:p-2 bg-red-500 text-white rounded-2xl hover:bg-red-600 transition duration-200 text-xs sm:text-sm"
+            className="rounded-2xl bg-rose-500 px-5 py-3 text-sm font-semibold text-white hover:bg-rose-600"
             onClick={handleDeleteMateria}
           >
             Excluir

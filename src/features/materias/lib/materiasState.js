@@ -13,7 +13,8 @@ export const updateMateriaAbsences = (materias, index, novasFaltas, datasFaltas)
   materiasAtualizadas[index] = {
     ...materiasAtualizadas[index],
     faltas: novasFaltas,
-    datasFaltas: datasFaltas || materiasAtualizadas[index].datasFaltas
+    datasFaltas: datasFaltas || materiasAtualizadas[index].datasFaltas,
+    lastFaltasUpdateAt: new Date().toISOString()
   };
   return materiasAtualizadas;
 };

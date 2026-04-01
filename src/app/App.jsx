@@ -24,9 +24,10 @@ import AnalyticsHub from '../features/dashboard/screens/AnalyticsHub';
 import MateriaList from '../components/MateriaList';
 import { buildCalendarEvents, syncCalendarFile } from '../features/schedule/lib/calendarSync';
 import { loadAcademicEvents } from '../features/calendar/lib/academicEvents';
-import { loadTurmas, subscribeToTurmas } from '../features/schedule/lib/turmasStorage';
+import { loadTurmas, subscribeToTurmas, syncTurmasWithMaterias } from '../features/schedule/lib/turmasStorage';
 import BottomSheet from '../components/layout/BottomSheet';
 import {
+  buildPushMetadata,
   loadNotificationSettings,
   persistNotificationSettings,
   reminderWeekdays
@@ -160,6 +161,14 @@ function App() {
     setTurmas(loadTurmas());
     return subscribeToTurmas(setTurmas);
   }, []);
+
+  useEffect(() => {
+    if (!user) {
+      return;
+    }
+
+    syncTurmasWithMaterias(materias);
+  }, [materias, user]);
 
   useEffect(() => onInstallPromptChange(setInstallPromptAvailable), []);
 
@@ -379,10 +388,11 @@ function App() {
     setNotificationPermission(nextPermission);
 
     if (granted) {
-      notificationService.init(reminderSettings);
+      const pushMetadata = buildPushMetadata(materias);
+      notificationService.init(reminderSettings, materias);
       notificationService.updateAllScheduledNotifications(materias, reminderSettings);
       if (pushSupported) {
-        await syncPushSubscription({ settings: reminderSettings });
+        await syncPushSubscription({ settings: reminderSettings, metadata: pushMetadata });
       }
       setRemindersFeedback('Notificacoes ativadas com sucesso.');
     }
@@ -405,12 +415,13 @@ function App() {
 
   const handleSaveReminderSettings = () => {
     const savedSettings = persistNotificationSettings(reminderSettings);
+    const pushMetadata = buildPushMetadata(materias);
     setReminderSettings(savedSettings);
 
     if (notificationPermission === 'granted') {
       notificationService.syncSettings(savedSettings, materias);
       if (pushSupported) {
-        updatePushSettings({ settings: savedSettings }).catch(() => {});
+        updatePushSettings({ settings: savedSettings, metadata: pushMetadata }).catch(() => {});
       }
 
       if (!savedSettings.systemNotifications && pushSupported) {
@@ -440,7 +451,7 @@ function App() {
 
     if (pushSupported) {
       try {
-        await syncPushSubscription({ settings: reminderSettings });
+        await syncPushSubscription({ settings: reminderSettings, metadata: buildPushMetadata(materias) });
         await sendPushTest();
         setRemindersFeedback('Push de teste enviado pela API.');
         return;
@@ -452,6 +463,17 @@ function App() {
 
     setRemindersFeedback('Notificacao de teste enviada.');
   };
+
+  useEffect(() => {
+    if (!user || !pushSupported || notificationPermission !== 'granted' || !reminderSettings.systemNotifications) {
+      return;
+    }
+
+    updatePushSettings({
+      settings: reminderSettings,
+      metadata: buildPushMetadata(materias)
+    }).catch(() => {});
+  }, [materias, reminderSettings, notificationPermission, pushSupported, user]);
 
   const mobileHeroTitle =
     activeView === 'materias'

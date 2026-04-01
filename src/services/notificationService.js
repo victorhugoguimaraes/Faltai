@@ -1,6 +1,7 @@
 import { getPublicAssetPath } from '../utils/assets';
 import { getStorageValue, setStorageValue, storageKeys } from '../utils/storage';
 import {
+  buildWeeklyReminderCopy,
   defaultNotificationSettings,
   loadNotificationSettings,
   normalizeNotificationSettings
@@ -47,14 +48,14 @@ class NotificationService {
     return normalizeNotificationSettings(loadNotificationSettings());
   }
 
-  initializeNotifications(settings = this.getSettings()) {
+  initializeNotifications(settings = this.getSettings(), materias = []) {
     if (settings.weeklyReminders) {
       const hasWeeklyNotification = this.scheduledNotifications.some(
         (notification) => notification.type === 'weekly'
       );
 
       if (!hasWeeklyNotification) {
-        this.scheduleWeeklyReminder(settings);
+        this.scheduleWeeklyReminder(settings, materias);
       }
     } else {
       this.removeNotificationsByType('weekly');
@@ -151,7 +152,7 @@ class NotificationService {
     return next;
   }
 
-  scheduleWeeklyReminder(settings = this.getSettings()) {
+  scheduleWeeklyReminder(settings = this.getSettings(), materias = []) {
     this.removeNotificationsByType('weekly');
 
     if (!settings.systemNotifications || !settings.weeklyReminders) {
@@ -159,12 +160,13 @@ class NotificationService {
     }
 
     const nextReminder = this.getNextWeeklyOccurrence(settings);
+    const reminderCopy = buildWeeklyReminderCopy(materias);
 
     this.scheduledNotifications.push({
       id: `weekly-reminder-${nextReminder.getTime()}`,
       type: 'weekly',
-      title: 'Lembrete semanal - Faltai',
-      message: 'Reserve um minuto para revisar e atualizar suas faltas.',
+      title: reminderCopy.title,
+      message: reminderCopy.body,
       scheduledTime: nextReminder.getTime()
     });
 
@@ -255,7 +257,7 @@ class NotificationService {
     }
 
     if (settings.systemNotifications && settings.weeklyReminders) {
-      this.scheduleWeeklyReminder(settings);
+      this.scheduleWeeklyReminder(settings, materias);
     } else {
       this.removeNotificationsByType('weekly');
       this.updateNotificationScheduler();
@@ -277,7 +279,7 @@ class NotificationService {
     return normalized;
   }
 
-  init(settings = this.getSettings()) {
+  init(settings = this.getSettings(), materias = []) {
     if (this.initialized) {
       this.startDailyCheck();
       this.updateNotificationScheduler();
@@ -285,7 +287,7 @@ class NotificationService {
     }
 
     this.initialized = true;
-    this.initializeNotifications(settings);
+    this.initializeNotifications(settings, materias);
     this.startDailyCheck();
     this.updateNotificationScheduler();
 

@@ -38,6 +38,7 @@ describe('materiasState helpers', () => {
 
     expect(next[1].faltas).toBe(9);
     expect(next[1].datasFaltas).toEqual(['2026-03-05', '2026-03-10']);
+    expect(next[1].lastFaltasUpdateAt).toBeTruthy();
   });
 
   it('calcula estatisticas da lista', () => {

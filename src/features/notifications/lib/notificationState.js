@@ -22,6 +22,8 @@ export const reminderWeekdays = [
   { value: 6, label: 'Sabado' }
 ];
 
+const DAY_IN_MS = 24 * 60 * 60 * 1000;
+
 export const defaultNotificationSettings = {
   evaluationReminders: true,
   weeklyReminders: true,
@@ -139,3 +141,76 @@ export const buildAttendanceNotifications = (materias, now = new Date()) =>
       tipo: 'alerta',
       timestamp: now
     }));
+
+export const buildWeeklyReminderCopy = (materias = [], now = new Date()) => {
+  if (!Array.isArray(materias) || materias.length === 0) {
+    return {
+      title: 'Faltai',
+      body: 'Reserve um minuto para revisar as faltas da semana e manter o semestre organizado.'
+    };
+  }
+
+  const totalFaltas = materias.reduce((sum, materia) => sum + (Number(materia?.faltas) || 0), 0);
+  const materiasEmRisco = materias.filter((materia) => {
+    const faltas = Number(materia?.faltas) || 0;
+    const maxFaltas = Number(materia?.maxFaltas) || 1;
+    return maxFaltas > 0 && faltas / maxFaltas >= 0.75;
+  });
+
+  const latestAttendanceUpdate = materias
+    .map((materia) => materia?.lastFaltasUpdateAt)
+    .filter(Boolean)
+    .map((value) => new Date(value))
+    .filter((date) => !Number.isNaN(date.getTime()))
+    .sort((left, right) => right.getTime() - left.getTime())[0];
+
+  const daysSinceLastUpdate = latestAttendanceUpdate
+    ? Math.floor((now.getTime() - latestAttendanceUpdate.getTime()) / DAY_IN_MS)
+    : null;
+
+  if (materiasEmRisco.length > 0) {
+    return {
+      title: 'Faltai',
+      body: `Tem materia pedindo presenca. ${materiasEmRisco[0].nome} merece uma checagem nas faltas hoje.`
+    };
+  }
+
+  if (totalFaltas > 0 && daysSinceLastUpdate !== null && daysSinceLastUpdate >= 14) {
+    return {
+      title: 'Faltai',
+      body: 'Nossa, ou voce parou de faltar ou esqueceu de atualizar. Bora conferir suas faltas?'
+    };
+  }
+
+  if (totalFaltas > 0 && daysSinceLastUpdate !== null && daysSinceLastUpdate >= 7) {
+    return {
+      title: 'Faltai',
+      body: 'Faz uns dias que suas faltas nao mudam. Vale abrir o app e confirmar se esta tudo em dia.'
+    };
+  }
+
+  if (totalFaltas === 0 && daysSinceLastUpdate !== null && daysSinceLastUpdate >= 14) {
+    return {
+      title: 'Faltai',
+      body: 'Semana calma ou controle esquecido? Passa no app e garante que as faltas continuam zeradas mesmo.'
+    };
+  }
+
+  return {
+    title: 'Faltai',
+    body: 'Hora de revisar as faltas da semana e deixar o semestre em ordem.'
+  };
+};
+
+export const buildPushMetadata = (materias = [], now = new Date()) => {
+  const weeklyReminder = buildWeeklyReminderCopy(materias, now);
+
+  return {
+    weeklyReminderTitle: weeklyReminder.title,
+    weeklyReminderBody: weeklyReminder.body,
+    totalMaterias: Array.isArray(materias) ? materias.length : 0,
+    totalFaltas: Array.isArray(materias)
+      ? materias.reduce((sum, materia) => sum + (Number(materia?.faltas) || 0), 0)
+      : 0
+  };
+};

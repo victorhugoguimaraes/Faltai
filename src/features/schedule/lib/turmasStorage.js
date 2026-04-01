@@ -1,6 +1,15 @@
 import { getStorageValue, setStorageValue, storageKeys } from '../../../utils/storage';
 
 const TURMAS_UPDATED_EVENT = 'faltai:turmas-updated';
+const weekdayMap = {
+  SEG: 'SEG',
+  TER: 'TER',
+  QUA: 'QUA',
+  QUI: 'QUI',
+  SEX: 'SEX',
+  SAB: 'SAB',
+  DOM: 'DOM'
+};
 
 const randomId = () => {
   if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
@@ -55,6 +64,49 @@ export const normalizeTurmas = (turmas = []) => {
     });
 };
 
+const parseHorarioResumoEntry = (materia, entry, index) => {
+  const match = String(entry || '')
+    .trim()
+    .match(/^(SEG|TER|QUA|QUI|SEX|SAB|DOM)\s+(\d{2}:\d{2})\s*[-–]\s*(\d{2}:\d{2})(?:\s*[•-]\s*(.+))?$/i);
+
+  if (!match) {
+    return null;
+  }
+
+  const [, rawWeekday, inicio, fim, local] = match;
+
+  return createTurma({
+    id: `${materia.id || materia.nome}-${rawWeekday}-${inicio}-${index}`,
+    nome: materia.nome,
+    codigo: materia.turmaUnb?.classCode || materia.codigo || '',
+    docente: Array.isArray(materia.turmaUnb?.teachers) ? materia.turmaUnb.teachers.join(', ') : '',
+    local: local || materia.local || materia.turmaUnb?.classroom || '',
+    diaSemana: weekdayMap[rawWeekday.toUpperCase()] || 'SEG',
+    inicio,
+    fim,
+    observacoes: materia.turmaUnb?.scheduleCode
+      ? `Turma ${materia.turmaUnb.classCode} - ${materia.turmaUnb.scheduleCode}`
+      : ''
+  });
+};
+
+export const extractTurmasFromMaterias = (materias = []) =>
+  normalizeTurmas(
+    materias.flatMap((materia) => {
+      if (!materia || !materia.nome) {
+        return [];
+      }
+
+      if (Array.isArray(materia.horarioResumo) && materia.horarioResumo.length > 0) {
+        return materia.horarioResumo
+          .map((entry, index) => parseHorarioResumoEntry(materia, entry, index))
+          .filter(Boolean);
+      }
+
+      return [];
+    })
+  );
+
 export const loadTurmas = () => normalizeTurmas(getStorageValue(storageKeys.turmas, []));
 
 export const mergeTurmas = (currentTurmas = [], nextTurmas = []) =>
@@ -69,6 +121,13 @@ export const saveTurmas = (turmas) => {
   }
 
   return normalizedTurmas;
+};
+
+export const syncTurmasWithMaterias = (materias = []) => {
+  const storedTurmas = loadTurmas();
+  const derivedTurmas = extractTurmasFromMaterias(materias);
+  const syncedTurmas = normalizeTurmas([...storedTurmas, ...derivedTurmas]);
+  return saveTurmas(syncedTurmas);
 };
 
 export const subscribeToTurmas = (onChange) => {
@@ -98,11 +157,15 @@ export const subscribeToTurmas = (onChange) => {
 };
 
 export const shareTurmasAsText = async (turmas) => {
-  const text = turmas.length === 0
-    ? 'Minha grade no Faltaí ainda está vazia.'
-    : turmas.map((turma) =>
-        `${turma.nome}${turma.codigo ? ` (${turma.codigo})` : ''}\n${turma.diaSemana} ${turma.inicio}-${turma.fim}${turma.local ? ` • ${turma.local}` : ''}${turma.docente ? ` • ${turma.docente}` : ''}`
-      ).join('\n\n');
+  const text =
+    turmas.length === 0
+      ? 'Minha grade no Faltai ainda esta vazia.'
+      : turmas
+          .map(
+            (turma) =>
+              `${turma.nome}${turma.codigo ? ` (${turma.codigo})` : ''}\n${turma.diaSemana} ${turma.inicio}-${turma.fim}${turma.local ? ` • ${turma.local}` : ''}${turma.docente ? ` • ${turma.docente}` : ''}`
+          )
+          .join('\n\n');
 
   if (navigator.share) {
     await navigator.share({

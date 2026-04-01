@@ -7,9 +7,10 @@ function FloatingActionButton({ onClick }) {
       type="button"
       onClick={onClick}
       aria-label="Adicionar materia"
-      className="safe-bottom fixed bottom-[6.1rem] right-4 z-[9998] flex h-14 w-14 items-center justify-center rounded-[1.35rem] border border-white/20 bg-slate-950 text-white shadow-strong transition-transform duration-200 hover:scale-[1.04] active:scale-[0.96] sm:bottom-8 sm:right-8 sm:h-16 sm:w-16 sm:rounded-[1.6rem]"
+      className="fixed right-4 z-[9998] flex h-15 w-15 items-center justify-center rounded-[1.5rem] border border-white/25 bg-slate-950 text-white shadow-strong transition-transform duration-200 hover:scale-[1.04] active:scale-[0.96] sm:bottom-8 sm:right-8 sm:h-16 sm:w-16 sm:rounded-[1.6rem]"
+      style={{ bottom: 'calc(7.25rem + env(safe-area-inset-bottom, 0px))' }}
     >
-      <FaPlus size={18} />
+      <FaPlus size={20} />
     </button>
   );
 }

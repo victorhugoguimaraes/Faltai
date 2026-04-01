@@ -310,15 +310,41 @@ h1, h2, h3, h4, h5, h6 {
   color: #171717;
 }
 
-.faltai-calendar__tile--falta {
+.faltai-calendar__tile--falta,
+.faltai-calendar__tile--trabalho {
   background: rgba(22, 101, 52, 0.1) !important;
   color: #166534;
   font-weight: 700;
 }
 
-.faltai-calendar__tile--avaliacao {
+.faltai-calendar__tile--avaliacao,
+.faltai-calendar__tile--prova {
   background: rgba(244, 63, 94, 0.12) !important;
   color: #be123c;
+  font-weight: 700;
+}
+
+.faltai-calendar__tile--aula {
+  background: rgba(14, 165, 233, 0.12) !important;
+  color: #0369a1;
+  font-weight: 700;
+}
+
+.faltai-calendar__tile--feriado {
+  background: rgba(71, 85, 105, 0.12) !important;
+  color: #475569;
+  font-weight: 700;
+}
+
+.faltai-calendar__tile--prazo {
+  background: rgba(245, 158, 11, 0.16) !important;
+  color: #b45309;
+  font-weight: 700;
+}
+
+.faltai-calendar__tile--outro {
+  background: rgba(217, 70, 239, 0.12) !important;
+  color: #c026d3;
   font-weight: 700;
 }
 

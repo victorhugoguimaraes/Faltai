@@ -121,8 +121,8 @@ const dispatchWeeklyReminders = async () => {
 
       try {
         await sendPushMessage(record.subscription, {
-          title: 'Faltai',
-          body: 'Hora de revisar as faltas da semana e deixar o semestre em ordem.',
+          title: record.metadata?.weeklyReminderTitle || 'Faltai',
+          body: record.metadata?.weeklyReminderBody || 'Hora de revisar as faltas da semana e deixar o semestre em ordem.',
           tag: 'weekly-reminder',
           url: `${record.metadata?.baseUrl || '/'}?action=review-faltas`
         });
