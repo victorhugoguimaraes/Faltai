@@ -91,7 +91,6 @@ export const MateriasProvider = ({ children }) => {
     const applyRemoteMaterias = (remoteMaterias) => {
       const mergedMaterias = mergeRemoteMateriasWithPending({
         remoteMaterias,
-        localMaterias,
         queue: queueForScope()
       });
 
@@ -198,7 +197,6 @@ export const MateriasProvider = ({ children }) => {
             .then((remoteMaterias) => {
               const mergedMaterias = mergeRemoteMateriasWithPending({
                 remoteMaterias,
-                localMaterias: loadLocalMaterias(currentScope),
                 queue: getPendingSyncState(currentScope)
               });
 

@@ -141,7 +141,7 @@ export const markMateriasWithPendingState = (materias, queue) => {
     }));
 };
 
-export const mergeRemoteMateriasWithPending = ({ remoteMaterias, localMaterias, queue }) => {
+export const mergeRemoteMateriasWithPending = ({ remoteMaterias, queue }) => {
   const pendingUpserts = queue?.upserts || {};
   const pendingDeletes = new Set(queue?.deletes || []);
   const byId = new Map();

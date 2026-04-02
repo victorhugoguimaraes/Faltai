@@ -62,7 +62,7 @@ describe('materiasPersistence helpers', () => {
       deletes: ['m2']
     };
 
-    const merged = mergeRemoteMateriasWithPending({ remoteMaterias, localMaterias, queue });
+    const merged = mergeRemoteMateriasWithPending({ remoteMaterias, queue });
 
     expect(merged.map((materia) => materia.id)).toEqual(['m1']);
     expect(merged.find((materia) => materia.id === 'm1')?.faltas).toBe(4);
