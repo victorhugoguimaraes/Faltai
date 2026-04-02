@@ -84,28 +84,8 @@ const toFirestorePayload = (materia) => {
 
 export const getMateriasStorageScope = (user) => (user?.uid ? user.uid : STORAGE_SCOPE_OFFLINE);
 
-const getLegacyMaterias = () => getStorageValue(storageKeys.materias, []);
-
-const migrateLegacyLocalMaterias = (scope) => {
-  const scopedKey = buildStorageKey(storageKeys.materias, scope);
-  const scopedMaterias = getStorageValue(scopedKey, null);
-
-  if (Array.isArray(scopedMaterias)) {
-    return scopedMaterias;
-  }
-
-  const legacyMaterias = getLegacyMaterias();
-
-  if (!Array.isArray(legacyMaterias) || legacyMaterias.length === 0) {
-    return [];
-  }
-
-  setStorageValue(scopedKey, legacyMaterias);
-  return legacyMaterias;
-};
-
 export const loadLocalMaterias = (scope) =>
-  normalizeMateriaList(migrateLegacyLocalMaterias(scope));
+  normalizeMateriaList(getStorageValue(buildStorageKey(storageKeys.materias, scope), []));
 
 export const saveLocalMaterias = (scope, materias) =>
   setStorageValue(buildStorageKey(storageKeys.materias, scope), normalizeMateriaList(materias));
@@ -191,28 +171,6 @@ const getUserDocRef = (firestoreModule, db, userId) => firestoreModule.doc(db, '
 const getSubjectDocRef = (firestoreModule, db, userId, materiaId) =>
   firestoreModule.doc(db, 'usuarios', userId, SUBJECTS_COLLECTION, String(materiaId));
 
-const migrateLegacyMaterias = async ({ firestoreModule, db, userId, userDocData }) => {
-  const legacyMaterias = Array.isArray(userDocData?.materias) ? userDocData.materias : [];
-
-  if (legacyMaterias.length === 0) {
-    return [];
-  }
-
-  const batch = firestoreModule.writeBatch(db);
-  const normalized = normalizeMateriaList(legacyMaterias);
-
-  normalized.forEach((materia) => {
-    batch.set(getSubjectDocRef(firestoreModule, db, userId, materia.id), toFirestorePayload(materia), { merge: true });
-  });
-
-  batch.update(getUserDocRef(firestoreModule, db, userId), {
-    materias: firestoreModule.deleteField()
-  });
-
-  await batch.commit();
-  return normalized;
-};
-
 export const loadRemoteMaterias = async (userId) => {
   const db = await getFirebaseDb();
 
@@ -231,19 +189,8 @@ export const loadRemoteMaterias = async (userId) => {
       ...docSnapshot.data()
     })));
   }
-
-  const userDocSnapshot = await firestoreModule.getDoc(getUserDocRef(firestoreModule, db, userId));
-
-  if (!userDocSnapshot.exists()) {
-    return [];
-  }
-
-  return migrateLegacyMaterias({
-    firestoreModule,
-    db,
-    userId,
-    userDocData: userDocSnapshot.data()
-  });
+  
+  return [];
 };
 
 export const flushMateriasSync = async (userId, scope) => {

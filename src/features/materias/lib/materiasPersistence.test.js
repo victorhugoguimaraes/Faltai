@@ -38,15 +38,6 @@ describe('materiasPersistence helpers', () => {
     expect(loadLocalMaterias('user-2')).toHaveLength(0);
   });
 
-  it('migra materias legadas da chave global para o novo escopo', () => {
-    localStorage.setItem('materias', JSON.stringify([{ id: 'm1', nome: 'Calculo', horas: 60, pesoFalta: 1 }]));
-
-    const materias = loadLocalMaterias('offline');
-
-    expect(materias).toHaveLength(1);
-    expect(JSON.parse(localStorage.getItem('materias:offline'))).toHaveLength(1);
-  });
-
   it('mantem upsert e delete em fila separada', () => {
     queueMateriaUpsert('user-1', { id: 'm1', nome: 'Calculo', horas: 60, pesoFalta: 1 });
     queueMateriaDelete('user-1', 'm2');

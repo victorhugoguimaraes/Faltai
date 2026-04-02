@@ -1,4 +1,4 @@
-const CACHE_NAME = 'faltai-runtime-v3';
+const CACHE_NAME = 'faltai-runtime-v4';
 const SAME_ORIGIN_DESTINATIONS = new Set(['document', 'script', 'style', 'image', 'font']);
 
 const resolveAssetUrl = (relativePath) => new URL(relativePath, self.registration.scope).toString();
