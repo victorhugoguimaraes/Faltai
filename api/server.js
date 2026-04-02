@@ -72,13 +72,22 @@ const refreshSnapshotWithLock = async ({ year, period }) => {
   const key = getSemesterKey(year, period);
 
   if (snapshotState.refreshLocks.has(key)) {
+    console.log(`[snapshot] refresh reutilizado para ${year}/${period}`);
     return snapshotState.refreshLocks.get(key);
   }
 
+  console.log(`[snapshot] refresh iniciado para ${year}/${period}`);
   const refreshPromise = refreshSnapshot({ year, period })
     .then((snapshot) => {
       snapshotState.snapshots.set(key, snapshot);
+      console.log(
+        `[snapshot] refresh concluido para ${year}/${period} em ${snapshot.refresh?.durationMs || 0}ms`
+      );
       return snapshot;
+    })
+    .catch((error) => {
+      console.error(`[snapshot] refresh falhou para ${year}/${period}:`, error.message);
+      throw error;
     })
     .finally(() => {
       snapshotState.refreshLocks.delete(key);
@@ -99,6 +108,7 @@ const warmSnapshotInMemory = async ({ year, period }) => {
 
   if (snapshot) {
     snapshotState.snapshots.set(key, snapshot);
+    console.log(`[snapshot] carregado do disco para ${year}/${period}`);
   }
 
   return snapshot || null;
@@ -394,7 +404,11 @@ app.get('/api/unb/snapshot/status', (req, res) => {
 });
 
 app.post('/api/unb/snapshot/refresh', async (req, res) => {
+  const semester = getRequestSemester(req);
+  console.log(`[snapshot] POST /refresh recebido para ${semester.year}/${semester.period}`);
+
   if (!canRefreshSnapshot(req)) {
+    console.warn(`[snapshot] refresh negado para ${semester.year}/${semester.period}`);
     res.status(403).json({
       message: 'Refresh manual do snapshot nao autorizado.'
     });
@@ -402,7 +416,7 @@ app.post('/api/unb/snapshot/refresh', async (req, res) => {
   }
 
   try {
-    const semester = getRequestSemester(req);
+    console.log(`[snapshot] refresh autorizado para ${semester.year}/${semester.period}`);
     const snapshot = await refreshSnapshotWithLock(semester);
 
     res.json({
