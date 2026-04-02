@@ -121,8 +121,14 @@ function parseDepartments(html) {
 }
 
 function extractWorkloadHours(text = '') {
-  const match = text.match(/\((\d+)h\)/i);
-  return match ? Number(match[1]) : null;
+  const matches = Array.from(text.matchAll(/\((\d+)h\)/gi));
+
+  if (matches.length === 0) {
+    return null;
+  }
+
+  const totalHours = matches.reduce((sum, match) => sum + Number(match[1] || 0), 0);
+  return totalHours > 0 ? totalHours : null;
 }
 
 function parseDateRange(scheduleCellText = '') {
@@ -348,6 +354,7 @@ async function searchTurmas({ department, year, period }) {
 module.exports = {
   filterDisciplinesByQuery,
   getInitialForm,
+  parseClassRows,
   parseDepartments,
   searchTurmas
 };

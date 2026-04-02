@@ -9,7 +9,8 @@ import { formatLocalDate, formatLocalDateLabel } from '../utils/dates';
 
 const tipoLabelMap = {
   PROVA: 'Prova',
-  TRABALHO: 'Entrega/Trabalho',
+  TRABALHO: 'Trabalho',
+  ENTREGA: 'Entrega',
   OUTRO: 'Compromisso'
 };
 
@@ -18,7 +19,7 @@ function FaltaiCalendar({ selectedMateria, onClose }) {
   const { addError, addSuccess } = useError();
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [novoCompromisso, setNovoCompromisso] = useState({
-    tipo: 'OUTRO',
+    tipo: 'PROVA',
     horario: '',
     descricao: ''
   });
@@ -96,7 +97,7 @@ function FaltaiCalendar({ selectedMateria, onClose }) {
       await editarMateria(selectedMateria, materiaAtualizada);
       addSuccess('Compromisso adicionado com sucesso!');
       setNovoCompromisso({
-        tipo: 'OUTRO',
+        tipo: 'PROVA',
         horario: '',
         descricao: ''
       });
@@ -271,9 +272,10 @@ function FaltaiCalendar({ selectedMateria, onClose }) {
                   }
                   className="w-full rounded-2xl border border-slate-200 px-3 py-3 text-sm text-slate-700"
                 >
-                  <option value="OUTRO">Compromisso</option>
                   <option value="PROVA">Prova</option>
-                  <option value="TRABALHO">Entrega</option>
+                  <option value="TRABALHO">Trabalho</option>
+                  <option value="ENTREGA">Entrega</option>
+                  <option value="OUTRO">Compromisso</option>
                 </select>
                 <input
                   type="time"

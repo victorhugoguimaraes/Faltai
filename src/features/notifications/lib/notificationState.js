@@ -6,6 +6,10 @@ const getEvaluationLabel = (tipo) => {
   }
 
   if (tipo === 'TRABALHO') {
+    return 'trabalho';
+  }
+
+  if (tipo === 'ENTREGA') {
     return 'entrega';
   }
 

@@ -4,6 +4,13 @@ import { useMaterias } from '../contexts/MateriasContext';
 import { useError } from '../contexts/ErrorContext';
 import { calculateMaxFaltas } from '../utils/validation';
 
+const hourOptions = ['30', '45', '60', '75', '90', '120'];
+
+const formatEvaluationDate = (value) => {
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? 'Data invalida' : date.toLocaleDateString('pt-BR');
+};
+
 function EditMateriaModal({ setEditModalOpen, editIndex }) {
   const { materias, editarMateria } = useMaterias();
   const { addError, addSuccess } = useError();
@@ -32,6 +39,9 @@ function EditMateriaModal({ setEditModalOpen, editIndex }) {
   if (editIndex === null || !materias || !materias[editIndex]) {
     return null;
   }
+
+  const currentHoursOption = horas ? String(horas) : '';
+  const hasCustomHourOption = currentHoursOption && !hourOptions.includes(currentHoursOption);
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -118,12 +128,12 @@ function EditMateriaModal({ setEditModalOpen, editIndex }) {
                 required
               >
                 <option value="">Selecione</option>
-                <option value="30">30 horas</option>
-                <option value="45">45 horas</option>
-                <option value="60">60 horas</option>
-                <option value="75">75 horas</option>
-                <option value="90">90 horas</option>
-                <option value="120">120 horas</option>
+                {hasCustomHourOption ? <option value={currentHoursOption}>{currentHoursOption} horas</option> : null}
+                {hourOptions.map((option) => (
+                  <option key={option} value={option}>
+                    {option} horas
+                  </option>
+                ))}
               </select>
             </div>
 
@@ -201,8 +211,8 @@ function EditMateriaModal({ setEditModalOpen, editIndex }) {
                       <div className="min-w-0">
                         <p className="text-sm font-semibold text-slate-900">{avaliacao.tipo}</p>
                         <p className="mt-1 text-xs text-slate-500">
-                          {new Date(avaliacao.data).toLocaleDateString('pt-BR')}
-                          {avaliacao.descricao ? ` • ${avaliacao.descricao}` : ''}
+                          {formatEvaluationDate(avaliacao.data)}
+                          {avaliacao.descricao ? ` - ${avaliacao.descricao}` : ''}
                         </p>
                       </div>
                       <button
