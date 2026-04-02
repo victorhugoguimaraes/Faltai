@@ -5,6 +5,7 @@ import {
   FaChartLine,
   FaClipboardList,
   FaDownload,
+  FaRegCalendarAlt,
   FaSignOutAlt,
   FaSyncAlt
 } from 'react-icons/fa';
@@ -406,6 +407,13 @@ function App() {
     }
   };
 
+  const handleOpenWeeklySchedule = () => {
+    setActiveView('materias');
+    window.requestAnimationFrame(() => {
+      document.getElementById('grade-semanal')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  };
+
   const handleReminderSettingChange = (field, value) => {
     setReminderSettings((current) => ({
       ...current,
@@ -625,6 +633,15 @@ function App() {
                     >
                       <FaBell size={14} />
                       Lembretes
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={handleOpenWeeklySchedule}
+                      className="inline-flex min-w-max items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-soft"
+                    >
+                      <FaRegCalendarAlt size={14} />
+                      Ver grade semanal
                     </button>
 
                     {installPromptAvailable && (

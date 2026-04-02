@@ -240,7 +240,7 @@ function CalendarioAcademico({ materias, onClose }) {
               <div className="rounded-[1.75rem] border border-slate-100 bg-white p-4 shadow-soft">
                 <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">Legenda</p>
                 <div className="mt-3 rounded-2xl bg-slate-50 px-4 py-3 text-sm leading-6 text-slate-600">
-                  A cor do dia mostra o evento mais importante daquele bloco. Os pontos abaixo do numero mostram ate
+                  A cor do dia mostra o evento mais importante daquele dia. Os pontos abaixo do numero mostram ate
                   3 tipos de evento no mesmo dia.
                 </div>
                 <div className="mt-4 grid gap-3 sm:grid-cols-2">

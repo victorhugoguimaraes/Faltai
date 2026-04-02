@@ -1,154 +1,82 @@
 # Faltai
 
-Faltai is a mobile-first PWA for tracking class absences, schedule blocks, academic events, reminders, and semester risk in one place.
+Faltai é uma aplicação web progressiva voltada para estudantes que precisam acompanhar faltas, matérias, grade semanal, avaliações e marcos do semestre com rapidez, principalmente no celular.
 
-Live app:
+A proposta do projeto é juntar em um só lugar:
+- controle de faltas por matéria
+- visualização da grade semanal
+- calendário acadêmico e calendário de avaliações
+- painel com leitura do semestre
+- lembretes e notificações
+- importação de turmas da UnB
+
+Aplicação publicada:
 [https://victorhugoguimaraes.github.io/Faltai/](https://victorhugoguimaraes.github.io/Faltai/)
 
-## Current stack
+## Tecnologias utilizadas
 
-- Frontend: React 19 + Vite 6
-- Tests: Vitest + Testing Library
-- Auth and user data: Firebase
-- Public UnB class search API: Node + Express
-- Hosting:
-  - Frontend on GitHub Pages
-  - UnB API on Render
+### Linguagens
 
-## Main features
+- JavaScript
+- HTML
+- CSS
 
-- Subject CRUD with absence tracking
-- Weekly schedule assembled from imported classes
-- Academic calendar and evaluation calendar
-- Semester dashboard with useful summaries
-- Reminder settings and web push support
-- Google login and local fallback mode when Firebase is not configured
-- UnB SIGAA search through a dedicated API
+### Frontend
 
-## UnB API architecture
+- React 19
+- Vite 6
+- React DOM
+- React Icons
+- React Calendar
+- Chart.js
+- React Chartjs 2
 
-The UnB API now works with one snapshot per semester.
+### Backend e serviços
 
-What that means:
-- the API generates a file like `snapshot-2026-1.json`
-- this file stores departments, disciplines, and classes for that semester
-- user searches query the snapshot instead of scraping SIGAA on every request
-- the snapshot is refreshed weekly
-- a manual refresh endpoint is available when needed
+- Node.js
+- Express
+- CORS
+- Cheerio para parsing do HTML do SIGAA
+- Web Push para notificações
+- Firebase Authentication
+- Firebase Firestore
+- Firebase Analytics
 
-Why this exists:
-- much faster first search
-- much more predictable performance
-- less dependency on SIGAA response time
-- less scraping work during user requests
+### Infra e deploy
 
-Useful endpoints:
-- `GET /api/health`
-- `GET /api/unb/departamentos`
-- `GET /api/unb/turmas?department=508&year=2026&period=1&query=pesquisa`
-- `GET /api/unb/snapshot/status?year=2026&period=1`
-- `POST /api/unb/snapshot/refresh?year=2026&period=1`
+- GitHub Pages para o frontend
+- Render para a API da UnB
+- GitHub Actions para automação de build e publicação
 
-## Local development
+### Testes e qualidade
 
-Requirements:
-- Node.js 18+
-- npm
-- Firebase project if you want full auth/persistence locally
+- Vitest
+- Testing Library
 
-Install:
+## Técnicas e decisões usadas no projeto
 
-```bash
-git clone https://github.com/victorhugoguimaraes/Faltai.git
-cd Faltai
-npm install
-```
+- arquitetura mobile-first
+- PWA com manifest, service worker e suporte a instalação
+- separação entre frontend e API própria
+- autenticação terceirizada com Firebase para não armazenar senha manualmente
+- persistência local para modo offline e fallback
+- integração com SIGAA via API intermediária
+- uso de snapshot por semestre para reduzir latência e evitar scraping ao vivo em toda busca
+- atualização semanal do snapshot com opção de refresh manual
+- carregamento sob demanda das turmas ao abrir uma disciplina
 
-Run frontend:
+## Estrutura geral
 
-```bash
-npm run dev
-```
+- `src/`
+  - interface, estado do app, componentes e features
+- `api/`
+  - API da UnB, snapshots e endpoints de push
+- `public/`
+  - ícones, manifest e arquivos públicos do PWA
+- `docs/`
+  - documentação técnica e documentação de segurança
 
-Run API:
+## Documentações
 
-```bash
-npm run dev:api
-```
-
-Frontend usually opens on:
-- `http://localhost:5173`
-- `http://localhost:5174`
-
-API usually runs on:
-- `http://localhost:8787`
-
-## Environment variables
-
-Frontend:
-
-```bash
-VITE_FIREBASE_API_KEY=...
-VITE_FIREBASE_AUTH_DOMAIN=...
-VITE_FIREBASE_DATABASE_URL=...
-VITE_FIREBASE_PROJECT_ID=...
-VITE_FIREBASE_STORAGE_BUCKET=...
-VITE_FIREBASE_MESSAGING_SENDER_ID=...
-VITE_FIREBASE_APP_ID=...
-VITE_FIREBASE_MEASUREMENT_ID=...
-VITE_API_URL=http://localhost:8787
-VITE_UNB_API_URL=http://localhost:8787
-```
-
-Backend:
-
-```bash
-UNB_API_PORT=8787
-UNB_API_HOST=0.0.0.0
-CORS_ORIGINS=http://localhost:5173,http://localhost:5174,https://victorhugoguimaraes.github.io
-UNB_SNAPSHOT_YEAR=2026
-UNB_SNAPSHOT_PERIOD=1
-UNB_SNAPSHOT_CONCURRENCY=3
-UNB_SNAPSHOT_ADMIN_KEY=change-me
-```
-
-Notes:
-- `VITE_API_URL` is the preferred frontend API variable
-- `VITE_UNB_API_URL` is still supported as fallback
-- snapshot files are stored under `api/data/snapshots`
-
-## Quality checks
-
-Run tests:
-
-```bash
-npm run test:ci
-```
-
-Run production build:
-
-```bash
-npm run build
-```
-
-Run both:
-
-```bash
-npm run verify
-```
-
-## Deploy overview
-
-Frontend:
-- GitHub Pages publishes from the GitHub Actions workflow
-- set `VITE_API_URL` or `VITE_UNB_API_URL` in repository variables
-
-Backend:
-- Render runs the Express API using [render.yaml](/Users/victo/Faltai/render.yaml)
-- keep `CORS_ORIGINS` aligned with the GitHub Pages domain
-- after deploy, trigger one manual snapshot refresh to warm the semester
-
-## Documentation
-
-- Technical documentation: [docs/DOCUMENTATION.md](/Users/victo/Faltai/docs/DOCUMENTATION.md)
-- Security notes: [docs/SECURITY.md](/Users/victo/Faltai/docs/SECURITY.md)
+- [Documentação técnica](/Users/victo/Faltai/docs/DOCUMENTATION.md)
+- [Segurança](/Users/victo/Faltai/docs/SECURITY.md)

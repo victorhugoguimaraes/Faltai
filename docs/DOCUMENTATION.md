@@ -1,45 +1,44 @@
-# Faltai Technical Documentation
+# Documentação Técnica do Faltai
 
-## 1. Project overview
+## Visão geral
 
-Faltai is split into two main parts:
+O Faltai é dividido em duas partes principais:
 
 1. Frontend PWA
-   - React + Vite application
-   - runs on GitHub Pages
-   - handles UI, Firebase auth, local state, reminders, and user flows
+   - responsável por interface, autenticação, estado local, lembretes e experiência do usuário
+   - publicado no GitHub Pages
 
-2. UnB API
-   - Node + Express service
-   - runs separately on Render
-   - serves departments and classes from a semester snapshot
+2. API da UnB
+   - responsável pela consulta de departamentos e turmas
+   - publicada separadamente no Render
+   - trabalha com snapshots semestrais para acelerar buscas
 
-This separation exists because GitHub Pages cannot run server-side scraping logic.
+Essa separação existe porque o GitHub Pages não executa backend nem scraping server-side.
 
-## 2. Frontend architecture
+## Arquitetura do frontend
 
-Main entrypoints:
+Entradas principais:
 - [main.jsx](/Users/victo/Faltai/src/main.jsx)
 - [App.jsx](/Users/victo/Faltai/src/app/App.jsx)
 - [providers.jsx](/Users/victo/Faltai/src/app/providers.jsx)
 
-High-level areas:
+Organização:
 - `src/app`
-  - app shell and providers
+  - shell do app, providers e estrutura principal
 - `src/components`
-  - reusable UI, modals, and layout pieces
+  - modais, layout e componentes reutilizáveis
 - `src/contexts`
-  - auth, errors, and subject state
+  - autenticação, erros e matérias
 - `src/features`
-  - domain-focused logic for calendar, dashboard, notifications, schedule, and auth
-- `src/lib`
-  - environment resolution helpers
+  - lógica separada por domínio
 - `src/services`
-  - service-layer integrations such as Firebase auth and notifications
+  - integrações externas
 - `src/utils`
-  - validation, PWA helpers, assets, and storage utilities
+  - validação, storage, PWA e helpers
+- `src/lib`
+  - resolução de ambiente e helpers globais
 
-Current feature grouping:
+Features principais:
 - `features/auth`
 - `features/calendar`
 - `features/dashboard`
@@ -48,174 +47,166 @@ Current feature grouping:
 - `features/notifications`
 - `features/schedule`
 
-## 3. Data model on the frontend
+## Estado principal do app
 
-The core user object in practice revolves around:
-- subjects (`materias`)
-- absences
-- evaluations
-- imported class schedule blocks
-- reminder preferences
+Os dados mais importantes do Faltai giram em torno de:
+- matérias
+- faltas
+- avaliações
+- horários importados
+- configurações de lembrete
 
-Important modules:
+Módulos importantes:
 - [materiasState.js](/Users/victo/Faltai/src/features/materias/lib/materiasState.js)
 - [turmasStorage.js](/Users/victo/Faltai/src/features/schedule/lib/turmasStorage.js)
 - [notificationState.js](/Users/victo/Faltai/src/features/notifications/lib/notificationState.js)
 - [dashboardMetrics.js](/Users/victo/Faltai/src/features/dashboard/lib/dashboardMetrics.js)
 
-## 4. UnB API architecture
+## Arquitetura da API da UnB
 
-Main files:
+Arquivos principais:
 - [server.js](/Users/victo/Faltai/api/server.js)
 - [sigaa.js](/Users/victo/Faltai/api/unb/sigaa.js)
 - [snapshotStore.js](/Users/victo/Faltai/api/unb/snapshotStore.js)
 - [pushStore.js](/Users/victo/Faltai/api/pushStore.js)
 
-### 4.1 What a snapshot is
+## O que é um snapshot
 
-A snapshot is a pre-generated semester dataset.
+Um snapshot é uma foto pronta dos dados de um semestre.
 
-Example:
+Exemplo:
 - `snapshot-2026-1.json`
 
-This file contains:
-- semester metadata
-- the list of departments
-- the disciplines grouped by department
-- classes for each discipline
-- refresh metadata
-- precomputed stats
+Esse arquivo armazena:
+- semestre
+- departamentos
+- disciplinas por departamento
+- turmas de cada disciplina
+- metadados de atualização
+- estatísticas resumidas
 
-The goal is simple:
-- scrape SIGAA before the user needs the data
-- serve searches from local prepared data
+Em vez de a API consultar o SIGAA a cada busca do usuário, ela consulta esse arquivo já preparado.
 
-### 4.2 Why the API moved to snapshots
+## Por que usar snapshot
 
-The live scraper approach had a cold-start cost tied to:
-- the Render instance waking up
-- the API calling SIGAA
-- parsing HTML on the fly
+O snapshot foi adotado para resolver:
+- lentidão da primeira busca
+- dependência do SIGAA em tempo real
+- variação de performance por rede, cold start e parsing HTML
 
-With snapshots:
-- the first user request no longer depends on scraping
-- searches are faster and more stable
-- refresh cost is moved to a weekly maintenance flow
+Com snapshot:
+- o custo pesado acontece antes ou em background
+- a busca do usuário fica mais rápida
+- a resposta da API fica mais previsível
 
-### 4.3 Snapshot lifecycle
+## Ciclo de vida do snapshot
 
-The snapshot lifecycle is:
-
-1. Determine active semester
+1. A API define o semestre ativo
    - `UNB_SNAPSHOT_YEAR`
    - `UNB_SNAPSHOT_PERIOD`
 
-2. Refresh snapshot
-   - load departments from SIGAA
-   - fetch each department for the semester
-   - store the result in one JSON file
+2. A API gera o snapshot
+   - carrega a lista de departamentos
+   - consulta cada departamento no SIGAA
+   - consolida tudo em um único arquivo por semestre
 
-3. Prepare snapshot in memory
-   - normalize searchable fields once
-   - sort disciplines and classes once
-   - compute summary stats once
+3. A API prepara o snapshot em memória
+   - normaliza campos de busca
+   - ordena disciplinas e turmas
+   - calcula estatísticas uma vez
 
-4. Serve requests
-   - `/api/unb/departamentos`
-   - `/api/unb/turmas`
+4. A API atende as buscas a partir desse snapshot
 
-5. Refresh again when stale
-   - stale threshold: 7 days
+5. Quando o snapshot envelhece, ele é atualizado
 
-### 4.4 Why one snapshot per semester
+## Atualização automática e manual
 
-This was chosen over one file per department because it gave the best balance of:
-- simpler deployment
-- easier inspection and backup
-- very good performance
-- fewer files to manage
+Atualização automática:
+- a API verifica no boot se o snapshot está ausente ou vencido
+- depois verifica periodicamente
+- se tiver mais de 7 dias, faz refresh em background
 
-The API still stores disciplines grouped by department inside the single file, so lookups remain simple.
-
-### 4.5 Refresh model
-
-Automatic refresh:
-- the API checks snapshot freshness on startup
-- the API checks again periodically
-- if the snapshot is older than 7 days, it refreshes in background
-
-Manual refresh:
+Atualização manual:
 - `POST /api/unb/snapshot/refresh?year=2026&period=1`
-- if `UNB_SNAPSHOT_ADMIN_KEY` is configured, send it in `x-snapshot-admin-key`
+- pode ser protegida por `UNB_SNAPSHOT_ADMIN_KEY`
 
-Status endpoint:
+Status do snapshot:
 - `GET /api/unb/snapshot/status?year=2026&period=1`
 
-## 5. Search flow
+## Fluxo de busca da UnB
 
-### Departments
+### Departamentos
 
-Request:
+Endpoint:
 - `GET /api/unb/departamentos`
 
-Flow:
-1. try snapshot
-2. if snapshot exists, return departments from snapshot
-3. if snapshot is stale, trigger background refresh
-4. if no snapshot exists, fall back to live SIGAA fetch
+Fluxo:
+1. tenta responder pelo snapshot
+2. se o snapshot existir, usa ele
+3. se estiver vencido, agenda refresh em background
+4. se não existir snapshot, cai no fluxo antigo com SIGAA
 
-### Classes
+### Disciplinas por departamento
 
-Request:
-- `GET /api/unb/turmas?department=508&year=2026&period=1&query=pesquisa`
+Endpoint:
+- `GET /api/unb/turmas`
 
-Flow:
-1. validate `department`
-2. resolve semester
-3. try snapshot
-4. if snapshot exists, run in-memory search
-5. if snapshot is stale, keep serving current snapshot and refresh in background
-6. if no snapshot exists, fall back to the live scraper path
+Hoje esse endpoint devolve uma lista mais leve por disciplina, com:
+- código
+- nome
+- quantidade de turmas
 
-## 6. Performance notes
+Isso reduz o peso da primeira tela quando o usuário abre um departamento inteiro.
 
-Important implementation choices:
-- searchable strings are normalized once during snapshot preparation
-- stats are precomputed and cached in the snapshot object
-- classes and disciplines are sorted once
-- snapshot writes are asynchronous
-- prepared helper fields stay only in memory and are stripped before writing JSON
+### Detalhe de uma disciplina
 
-This means the API spends less CPU on:
-- repeated string normalization
-- repeated sorting
-- repeated nested reductions for stats
+Endpoint:
+- `GET /api/unb/disciplina`
 
-## 7. Push notifications
+Esse endpoint devolve as turmas completas de uma disciplina específica.
 
-Frontend pieces:
+Isso permite:
+- carregar a vitrine de disciplinas primeiro
+- carregar as turmas só quando o usuário pedir
+
+## Decisões de performance
+
+As principais otimizações hoje são:
+- snapshot por semestre, em vez de scraping a cada request
+- normalização de busca feita uma vez
+- estatísticas pré-calculadas
+- arrays ordenados uma vez
+- escrita assíncrona do snapshot
+- carregamento sob demanda do detalhe das disciplinas
+
+Isso reduz custo com:
+- loops repetidos
+- normalização de string toda hora
+- renderização excessiva no frontend
+- payloads grandes desnecessários
+
+## Push e lembretes
+
+Arquivos principais:
 - [notificationService.js](/Users/victo/Faltai/src/services/notificationService.js)
 - [pushNotifications.js](/Users/victo/Faltai/src/features/notifications/lib/pushNotifications.js)
-
-Backend pieces:
-- [server.js](/Users/victo/Faltai/api/server.js)
 - [pushStore.js](/Users/victo/Faltai/api/pushStore.js)
 
-Relevant endpoints:
+Endpoints:
 - `GET /api/push/public-key`
 - `POST /api/push/subscribe`
 - `POST /api/push/settings`
 - `POST /api/push/unsubscribe`
 - `POST /api/push/test`
 
-Push behavior:
-- the frontend stores reminder preferences
-- subscriptions are persisted on the backend
-- weekly reminder dispatch runs on the API
+Fluxo:
+- o frontend salva preferências de lembrete
+- a API guarda subscriptions
+- a API usa Web Push para disparar os lembretes
 
-## 8. Environment variables
+## Variáveis de ambiente principais
 
-### Frontend
+Frontend:
 
 ```bash
 VITE_FIREBASE_API_KEY=
@@ -230,7 +221,7 @@ VITE_API_URL=
 VITE_UNB_API_URL=
 ```
 
-### Backend
+Backend:
 
 ```bash
 UNB_API_PORT=8787
@@ -242,62 +233,56 @@ UNB_SNAPSHOT_CONCURRENCY=3
 UNB_SNAPSHOT_ADMIN_KEY=
 VAPID_PUBLIC_KEY=
 VAPID_PRIVATE_KEY=
-VAPID_SUBJECT=mailto:you@example.com
+VAPID_SUBJECT=mailto:voce@exemplo.com
 ```
 
-## 9. Local commands
+## Comandos úteis
 
-Install:
+Instalar dependências:
 
 ```bash
 npm install
 ```
 
-Run frontend:
+Rodar frontend:
 
 ```bash
 npm run dev
 ```
 
-Run API:
+Rodar API:
 
 ```bash
 npm run dev:api
 ```
 
-Run tests:
+Rodar testes:
 
 ```bash
 npm run test:ci
 ```
 
-Build:
+Gerar build:
 
 ```bash
 npm run build
 ```
 
-## 10. Production deployment
+## Deploy
 
 Frontend:
 - GitHub Pages
-- workflow reads `VITE_API_URL` or `VITE_UNB_API_URL`
+- workflow usando `VITE_API_URL` ou `VITE_UNB_API_URL`
 
-Backend:
-- Render service defined by [render.yaml](/Users/victo/Faltai/render.yaml)
-- update env vars in Render
-- deploy latest commit
-- trigger one manual snapshot refresh after deploy
+API:
+- Render
+- serviço definido em [render.yaml](/Users/victo/Faltai/render.yaml)
+- precisa das envs de snapshot, CORS e push
 
-## 11. Testing and profiling
+## Observações finais
 
-Main automated validation:
-- `npm run test:ci`
-- `npm run build`
-
-Snapshot and performance experiments are intentionally kept outside the main runtime path.
-
-Profiling recommendation:
-- use Node CPU profiles with `node --cpu-prof`
-- profile snapshot search separately from network-bound requests
-- compare local snapshot performance against production latency to isolate infra cost from algorithm cost
+O Faltai hoje combina:
+- frontend rápido e mobile-first
+- autenticação com Firebase
+- API própria para integrar SIGAA
+- estratégia de snapshot para manter a busca da UnB rápida e estável

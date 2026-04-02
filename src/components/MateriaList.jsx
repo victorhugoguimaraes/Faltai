@@ -104,7 +104,10 @@ function MateriaList({
   return (
     <div id="materias-list" className="space-y-4 pb-28 sm:space-y-5 sm:pb-10">
       {sortedTurmas.length > 0 && (
-        <section className="rounded-[1.6rem] border border-white/80 bg-white/88 p-4 shadow-soft backdrop-blur-xl sm:rounded-[1.75rem] sm:p-6">
+        <section
+          id="grade-semanal"
+          className="rounded-[1.6rem] border border-white/80 bg-white/88 p-4 shadow-soft backdrop-blur-xl sm:rounded-[1.75rem] sm:p-6"
+        >
           <div className="mb-4 flex items-center justify-between gap-3">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">Grade semanal</p>

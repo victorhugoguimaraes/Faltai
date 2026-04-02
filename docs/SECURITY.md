@@ -1,116 +1,116 @@
-# Security Notes
+# Segurança do Faltai
 
-This document describes the practical security model of the Faltai project.
+## Visão geral
 
-## 1. Main security boundaries
+O modelo de segurança do Faltai parte de uma separação simples:
 
-Faltai has two different trust zones:
+1. Frontend
+   - roda no navegador
+   - é público
+   - não deve conter segredos do backend
 
-1. Frontend PWA
-   - public client code
-   - runs in the browser
-   - must never contain private backend secrets
+2. Backend
+   - roda no Render
+   - pode guardar segredos e chaves privadas
 
-2. Backend API
-   - runs on Render
-   - can safely hold server-side configuration and secret keys
+## Autenticação
 
-## 2. Authentication
+O Faltai usa Firebase Authentication.
 
-Authentication is handled by Firebase Auth.
+Motivos:
+- o projeto não precisa implementar login e senha do zero
+- o app não precisa armazenar senha manualmente
+- o fluxo de sessão e login social fica com um provedor maduro
 
-Why:
-- the project does not store user passwords directly
-- password handling, session tokens, and Google login are delegated to Firebase
-- this reduces the risk of implementing custom auth incorrectly
+Importante:
+- credenciais privadas de backend nunca devem ir para o frontend
+- configuração pública do app web do Firebase pode existir no frontend, o que é normal nesse modelo
 
-Important rule:
-- never move Firebase private server credentials into the frontend
+## Dados do usuário
 
-Frontend Firebase configuration is expected to be public in the normal Firebase web-app sense.
-That does not make the project insecure by itself. Security still depends on:
-- proper Firebase rules
-- proper backend authorization
-- not exposing secret admin credentials
-
-## 3. User data
-
-User-facing data such as subjects, absences, evaluations, and preferences may exist in:
+Os dados do usuário podem existir em:
 - Firebase
-- local browser storage
+- armazenamento local do navegador
 
-Recommendations:
-- keep only necessary user data
-- avoid storing unnecessary personal information
-- prefer subject and academic tracking data over sensitive personal profile fields
+Tipos principais:
+- matérias
+- faltas
+- avaliações
+- preferências
+- horários importados
 
-## 4. UnB API security model
+Boas práticas:
+- guardar só o necessário
+- evitar dados pessoais extras
+- revisar regras do Firebase quando o modelo de dados mudar
 
-The UnB API exposes public academic search data and push-notification endpoints.
+## Segurança da API da UnB
 
-Main protections:
-- CORS is restricted via `CORS_ORIGINS`
-- manual snapshot refresh can be protected with `UNB_SNAPSHOT_ADMIN_KEY`
-- push subscriptions are stored server-side
-- VAPID private keys stay on the backend only
+A API da UnB expõe:
+- busca pública de departamentos e turmas
+- endpoints de push
+- endpoints de snapshot
 
-## 5. Snapshot security
+Proteções principais:
+- CORS controlado por `CORS_ORIGINS`
+- refresh manual protegido por `UNB_SNAPSHOT_ADMIN_KEY`
+- chaves privadas de push só no backend
 
-Snapshot files contain public class-search information for a semester.
+## Segurança dos snapshots
 
-They are not user-secret data, but they should still be treated as server-managed assets.
+Os snapshots contêm dados acadêmicos públicos do semestre, não dados privados de usuários.
 
-Recommendations:
-- keep snapshot files out of the Git repository
-- store them under `api/data/snapshots`
-- do not expose raw server files directly
-- serve only through API endpoints
+Mesmo assim:
+- devem ficar fora do Git
+- devem ser tratados como artefatos do servidor
+- devem ser servidos pela API, não por acesso direto a arquivos
 
-## 6. Push notification security
+Local esperado:
+- `api/data/snapshots`
 
-Safe to expose:
-- VAPID public key
+## Segurança das notificações push
 
-Must stay private:
-- VAPID private key
-- any backend admin keys
-- any Firebase service-account credentials if introduced later
+Pode ser pública:
+- `VAPID_PUBLIC_KEY`
 
-Push subscriptions are not passwords, but they should still be handled as backend data:
-- do not dump them in logs unnecessarily
-- do not expose them in public endpoints
+Deve permanecer privada:
+- `VAPID_PRIVATE_KEY`
+- `UNB_SNAPSHOT_ADMIN_KEY`
+- quaisquer credenciais administrativas futuras
 
-## 7. Environment variable guidance
+Subscriptions de push não são senha, mas também não devem ser expostas desnecessariamente.
 
-Frontend-safe variables:
+## Variáveis seguras no frontend
+
+Essas podem existir no build do frontend:
 - `VITE_FIREBASE_*`
 - `VITE_API_URL`
 - `VITE_UNB_API_URL`
 
-Backend-only variables:
+## Variáveis que devem ficar só no backend
+
 - `UNB_SNAPSHOT_ADMIN_KEY`
 - `VAPID_PRIVATE_KEY`
-- any future database credentials
-- any future Firebase admin credentials
+- credenciais de banco futuras
+- credenciais administrativas futuras do Firebase, se existirem
 
-## 8. Operational recommendations
+## Recomendações operacionais
 
-- Always use HTTPS in production
-- Keep Render and GitHub Pages domains aligned with CORS settings
-- Protect manual refresh with `UNB_SNAPSHOT_ADMIN_KEY`
-- Rotate private push credentials if they are ever exposed
-- Review Firebase security rules whenever auth or storage structure changes
-- Avoid logging full tokens, subscriptions, or user-sensitive payloads
+- usar HTTPS em produção
+- manter `CORS_ORIGINS` alinhado com o domínio do GitHub Pages
+- proteger o refresh manual com chave
+- rotacionar segredos se houver vazamento
+- evitar logs com tokens, subscriptions ou payloads sensíveis
+- revisar permissões do Firebase periodicamente
 
-## 9. Reporting a vulnerability
+## Em caso de incidente
 
-If you discover a security issue in Faltai:
-- do not publish the exploit details immediately
-- report the issue privately to the maintainer first
-- include reproduction steps, impact, and suggested mitigation if possible
+Se algum segredo for exposto:
+1. revogue ou troque o segredo
+2. restrinja o serviço afetado
+3. publique o ajuste
+4. revise logs e uso recente
 
-For urgent issues involving exposed credentials:
-1. rotate the secret immediately
-2. restrict the affected service
-3. deploy a fix
-4. review logs for abuse
+Se for encontrado um problema de segurança no projeto:
+- reporte de forma privada primeiro
+- descreva impacto, reprodução e possível correção
