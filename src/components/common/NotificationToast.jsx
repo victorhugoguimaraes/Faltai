@@ -34,11 +34,11 @@ const NotificationToast = () => {
   };
 
   return (
-    <div className="fixed top-4 right-4 z-[9999] space-y-2 max-w-sm">
+    <div className="fixed inset-x-4 top-4 z-[10110] space-y-2 sm:right-4 sm:left-auto sm:max-w-sm">
       {errors.map((error) => (
         <div
           key={error.id}
-          className={`flex items-start space-x-3 p-4 rounded-lg border shadow-lg animate-fade-in ${getBackgroundColor(error.type)}`}
+          className={`flex items-start space-x-3 rounded-2xl border p-4 shadow-strong animate-fade-in ${getBackgroundColor(error.type)}`}
         >
           <div className="flex-shrink-0 mt-0.5">
             {getIcon(error.type)}
