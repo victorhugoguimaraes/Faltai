@@ -71,65 +71,34 @@ export const AuthProvider = ({ children }) => {
       const firestoreModule = await import('firebase/firestore');
 
       unsubscribe = auth.onAuthStateChanged(async (firebaseUser) => {
-        if (active) {
-          setLoading(true);
-        }
+        setLoading(true);
 
         try {
+          const storedOnlineState = getStorageValue(storageKeys.isOnline, false);
+          const nextIsOnline = Boolean(firebaseUser) || storedOnlineState;
           let userDocData = null;
 
           if (firebaseUser) {
             const userDocRef = firestoreModule.doc(db, 'usuarios', firebaseUser.uid);
-            try {
-              const userDoc = await firestoreModule.getDoc(userDocRef);
-              userDocData = userDoc.data();
-            } catch (error) {
-              console.warn('Nao foi possivel carregar o documento do usuario no Firestore:', error);
-            }
+            const userDoc = await firestoreModule.getDoc(userDocRef);
+            userDocData = userDoc.data();
           }
 
           const nextState = resolveAuthState({
             firebaseUser,
-            isOnline: Boolean(firebaseUser),
+            isOnline: nextIsOnline,
             userDocData,
             offlineUser: getStorageValue(storageKeys.offlineUser, null)
           });
 
-          if (firebaseUser) {
-            persistOnlineSession(nextState.user);
-          }
-
-          if (active) {
-            setUser(nextState.user);
-            setIsOnline(nextState.isOnline);
-          }
-
+          setUser(nextState.user);
+          setIsOnline(nextState.isOnline);
           setStorageValue(storageKeys.isOnline, nextState.isOnline);
         } catch (error) {
           console.error('Erro ao carregar dados do usuário:', error);
-
-          if (firebaseUser) {
-            const fallbackUser = {
-              uid: firebaseUser.uid,
-              email: firebaseUser.email,
-              displayName: firebaseUser.displayName || 'Usuario'
-            };
-            persistOnlineSession(fallbackUser);
-
-            if (active) {
-              setUser(fallbackUser);
-              setIsOnline(true);
-            }
-
-            setStorageValue(storageKeys.isOnline, true);
-          } else {
-            if (active) {
-              setUser(null);
-              setIsOnline(false);
-            }
-
-            setStorageValue(storageKeys.isOnline, false);
-          }
+          setUser(null);
+          setIsOnline(false);
+          setStorageValue(storageKeys.isOnline, false);
         } finally {
           if (active) {
             setLoading(false);
@@ -144,7 +113,7 @@ export const AuthProvider = ({ children }) => {
       active = false;
       unsubscribe();
     };
-  }, []);
+  }, [isOnline]);
 
   const login = async (email, password) => {
     const result = await loginWithEmail(email, password);

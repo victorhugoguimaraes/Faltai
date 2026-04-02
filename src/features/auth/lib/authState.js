@@ -47,7 +47,7 @@ export const clearPersistedSession = () => {
 };
 
 export const resolveAuthState = ({ firebaseUser, isOnline, userDocData, offlineUser }) => {
-  if (firebaseUser) {
+  if (firebaseUser && isOnline) {
     return {
       user: {
         uid: firebaseUser.uid,
