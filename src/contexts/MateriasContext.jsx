@@ -12,6 +12,7 @@ import {
   getMateriasStorageScope,
   getPendingSyncState,
   loadLocalMaterias,
+  loadRemoteMaterias,
   markMateriasWithPendingState,
   mergeRemoteMateriasWithPending,
   normalizeMateriaRecord,
@@ -38,6 +39,7 @@ export const MateriasProvider = ({ children }) => {
   const [error, setError] = useState(null);
   const syncTimeoutRef = useRef(null);
   const remoteUnsubscribeRef = useRef(() => {});
+  const remoteRefreshIntervalRef = useRef(null);
 
   const currentScope = getMateriasStorageScope(user);
 
@@ -69,9 +71,39 @@ export const MateriasProvider = ({ children }) => {
 
   useEffect(() => {
     const localMaterias = loadLocalMaterias(currentScope);
+    const queueForScope = () => getPendingSyncState(currentScope);
+    const applyRemoteMaterias = (remoteMaterias) => {
+      const mergedMaterias = mergeRemoteMateriasWithPending({
+        remoteMaterias,
+        localMaterias,
+        queue: queueForScope()
+      });
+
+      setMaterias(mergedMaterias);
+      saveLocalMaterias(currentScope, mergedMaterias);
+      setLoading(false);
+    };
+    const reconcileRemoteMaterias = async () => {
+      if (!isOnline || !user?.uid) {
+        return;
+      }
+
+      try {
+        const remoteMaterias = await loadRemoteMaterias(user.uid);
+        applyRemoteMaterias(remoteMaterias);
+      } catch (err) {
+        setError('Erro ao carregar materias');
+        console.error('Erro ao reconciliar materias remotas:', err);
+        setLoading(false);
+      }
+    };
 
     remoteUnsubscribeRef.current?.();
     remoteUnsubscribeRef.current = () => {};
+    if (remoteRefreshIntervalRef.current) {
+      clearInterval(remoteRefreshIntervalRef.current);
+      remoteRefreshIntervalRef.current = null;
+    }
 
     if (!user) {
       setMaterias(localMaterias);
@@ -89,6 +121,7 @@ export const MateriasProvider = ({ children }) => {
 
     if (isOnline && user.uid) {
       scheduleSync(currentScope);
+      reconcileRemoteMaterias();
 
       let active = true;
 
@@ -98,15 +131,7 @@ export const MateriasProvider = ({ children }) => {
             return;
           }
 
-          const mergedMaterias = mergeRemoteMateriasWithPending({
-            remoteMaterias,
-            localMaterias,
-            queue: getPendingSyncState(currentScope)
-          });
-
-          setMaterias(mergedMaterias);
-          saveLocalMaterias(currentScope, mergedMaterias);
-          setLoading(false);
+          applyRemoteMaterias(remoteMaterias);
         },
         onError: (err) => {
           if (!active) {
@@ -125,6 +150,10 @@ export const MateriasProvider = ({ children }) => {
 
         remoteUnsubscribeRef.current = unsubscribe || (() => {});
       });
+
+      remoteRefreshIntervalRef.current = window.setInterval(() => {
+        reconcileRemoteMaterias();
+      }, 15000);
     } else {
       setMaterias(localMaterias);
       setLoading(false);
@@ -133,6 +162,10 @@ export const MateriasProvider = ({ children }) => {
     return () => {
       remoteUnsubscribeRef.current?.();
       remoteUnsubscribeRef.current = () => {};
+      if (remoteRefreshIntervalRef.current) {
+        clearInterval(remoteRefreshIntervalRef.current);
+        remoteRefreshIntervalRef.current = null;
+      }
       if (syncTimeoutRef.current) {
         clearTimeout(syncTimeoutRef.current);
       }
@@ -144,6 +177,22 @@ export const MateriasProvider = ({ children }) => {
     const handleVisibilitySync = () => {
       if (document.visibilityState === 'visible') {
         scheduleSync();
+        if (isOnline && user?.uid) {
+          loadRemoteMaterias(user.uid)
+            .then((remoteMaterias) => {
+              const mergedMaterias = mergeRemoteMateriasWithPending({
+                remoteMaterias,
+                localMaterias: loadLocalMaterias(currentScope),
+                queue: getPendingSyncState(currentScope)
+              });
+
+              setMaterias(mergedMaterias);
+              saveLocalMaterias(currentScope, mergedMaterias);
+            })
+            .catch((error) => {
+              console.error('Erro ao atualizar materias ao voltar para o app:', error);
+            });
+        }
       }
     };
 
