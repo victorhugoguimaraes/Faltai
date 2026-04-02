@@ -42,6 +42,18 @@ describe('authState helpers', () => {
     expect(state.user.materias).toEqual([]);
   });
 
+  it('mantem usuario autenticado mesmo se o estado online vier inconsistente', () => {
+    const state = resolveAuthState({
+      firebaseUser: { uid: 'abc', email: 'aluno@example.com', displayName: 'Aluno' },
+      isOnline: false,
+      userDocData: null,
+      offlineUser: null
+    });
+
+    expect(state.isOnline).toBe(true);
+    expect(state.user.uid).toBe('abc');
+  });
+
   it('limpa sessao persistida no logout', () => {
     persistOfflineSession({ displayName: 'Teste' });
     const state = clearPersistedSession();
