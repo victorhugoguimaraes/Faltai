@@ -165,14 +165,12 @@ function CalendarioAcademico({ materias: materiasProp, onClose }) {
             }
           ]
         });
-        setModalAberto(false);
         resetNovoEvento();
         return;
       }
     }
 
     setEventosLocais((current) => [...current, buildAcademicEvent(novoEvento)]);
-    setModalAberto(false);
     resetNovoEvento();
   };
 
@@ -438,9 +436,14 @@ function CalendarioAcademico({ materias: materiasProp, onClose }) {
           />
         </div>
 
-        <button onClick={adicionarEvento} className="btn-primary w-full justify-center">
-          Adicionar Evento
-        </button>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <button onClick={adicionarEvento} className="btn-primary w-full justify-center">
+            Adicionar e continuar
+          </button>
+          <button onClick={() => setModalAberto(false)} className="app-button-secondary w-full justify-center">
+            Fechar
+          </button>
+        </div>
       </BottomSheet>
     </>
   );

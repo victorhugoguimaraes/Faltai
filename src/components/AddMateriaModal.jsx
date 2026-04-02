@@ -140,6 +140,20 @@ function AddMateriaModal({ setModalOpen }) {
     saveTurmas(mergeTurmas(currentTurmas, mappedTurmas));
   };
 
+  const resetManualForm = () => {
+    setNome('');
+    setHoras('');
+    setPesoFalta('1');
+    setAvaliacoes([]);
+    setNovaAvaliacao({
+      tipo: '',
+      data: '',
+      descricao: ''
+    });
+    setMostrarAvaliacoes(false);
+    setMostrarCalendario(false);
+  };
+
   const handleSubmit = async (event) => {
     event.preventDefault();
 
@@ -171,7 +185,7 @@ function AddMateriaModal({ setModalOpen }) {
 
       await adicionarMateria(sanitizeMateria(novaMateria));
       addSuccess('Materia adicionada com sucesso!');
-      setModalOpen(false);
+      resetManualForm();
     } catch (_error) {
       addError('Erro ao adicionar materia');
     }
@@ -329,7 +343,6 @@ function AddMateriaModal({ setModalOpen }) {
       await adicionarMateria(importedMateria);
       persistTurmaFromUnb(discipline, turma);
       addSuccess(`Turma ${turma.classCode} adicionada com horario traduzido.`);
-      setModalOpen(false);
     } catch (_error) {
       addError('Nao foi possivel importar a turma selecionada.');
     }
@@ -539,9 +552,18 @@ function AddMateriaModal({ setModalOpen }) {
               </>
             )}
 
-            <button type="submit" className="btn-primary w-full justify-center">
-              Adicionar materia
-            </button>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <button type="submit" className="btn-primary w-full justify-center">
+                Adicionar e continuar
+              </button>
+              <button
+                type="button"
+                onClick={() => setModalOpen(false)}
+                className="app-button-secondary w-full justify-center"
+              >
+                Fechar
+              </button>
+            </div>
           </form>
         )}
 
@@ -694,7 +716,7 @@ function AddMateriaModal({ setModalOpen }) {
                             onClick={() => importUnbClass(selectedDiscipline, turma)}
                             className="rounded-xl bg-emerald-700 px-4 py-3 text-sm font-semibold text-white hover:bg-emerald-800"
                           >
-                            Adicionar a lista
+                            Adicionar e continuar
                           </button>
                         </div>
                       </div>
@@ -702,27 +724,39 @@ function AddMateriaModal({ setModalOpen }) {
                   </div>
                 </div>
               ) : (
-                disciplineResults.map((discipline) => (
-                  <div key={discipline.code} className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
-                    <div className="mb-3">
-                      <p className="text-xs font-semibold uppercase tracking-[0.22em] text-emerald-800">
-                        {discipline.code}
-                      </p>
-                      <h3 className="mt-1 text-lg font-semibold text-slate-900">{discipline.name}</h3>
-                      <p className="mt-2 text-sm text-slate-600">
-                        {(discipline.classCount || 0)} turma{(discipline.classCount || 0) > 1 ? 's' : ''} encontrada
-                        {(discipline.classCount || 0) > 1 ? 's' : ''}
-                      </p>
+                <>
+                  {disciplineResults.map((discipline) => (
+                    <div key={discipline.code} className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
+                      <div className="mb-3">
+                        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-emerald-800">
+                          {discipline.code}
+                        </p>
+                        <h3 className="mt-1 text-lg font-semibold text-slate-900">{discipline.name}</h3>
+                        <p className="mt-2 text-sm text-slate-600">
+                          {(discipline.classCount || 0)} turma{(discipline.classCount || 0) > 1 ? 's' : ''} encontrada
+                          {(discipline.classCount || 0) > 1 ? 's' : ''}
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedDisciplineCode(discipline.code)}
+                        className="rounded-xl bg-slate-950 px-4 py-3 text-sm font-semibold text-white hover:bg-slate-800"
+                      >
+                        Ver turmas
+                      </button>
                     </div>
+                  ))}
+
+                  {disciplineResults.length > 0 ? (
                     <button
                       type="button"
-                      onClick={() => setSelectedDisciplineCode(discipline.code)}
-                      className="rounded-xl bg-slate-950 px-4 py-3 text-sm font-semibold text-white hover:bg-slate-800"
+                      onClick={() => setModalOpen(false)}
+                      className="app-button-secondary w-full justify-center"
                     >
-                      Ver turmas
+                      Fechar
                     </button>
-                  </div>
-                ))
+                  ) : null}
+                </>
               )}
             </div>
           </div>
