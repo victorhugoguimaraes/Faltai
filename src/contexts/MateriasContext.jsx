@@ -69,6 +69,22 @@ export const MateriasProvider = ({ children }) => {
     }, 250);
   };
 
+  const syncNow = async (scope = currentScope) => {
+    if (!isOnline || !user?.uid) {
+      return { synced: false };
+    }
+
+    try {
+      const result = await flushMateriasSync(user.uid, scope);
+      setMaterias((currentMaterias) => markMateriasWithPendingState(currentMaterias, getPendingSyncState(scope)));
+      return result;
+    } catch (syncError) {
+      setError('Erro ao sincronizar materias');
+      console.error('Erro ao sincronizar materias pendentes:', syncError);
+      throw syncError;
+    }
+  };
+
   useEffect(() => {
     const localMaterias = loadLocalMaterias(currentScope);
     const queueForScope = () => getPendingSyncState(currentScope);
@@ -210,7 +226,6 @@ export const MateriasProvider = ({ children }) => {
 
     try {
       const normalizedMaterias = novasMaterias.map((materia) => normalizeMateriaRecord(materia));
-      refreshPendingState(normalizedMaterias, currentScope);
 
       if (deletedMateriaId !== null && deletedMateriaId !== undefined) {
         queueMateriaDelete(currentScope, deletedMateriaId);
@@ -226,8 +241,13 @@ export const MateriasProvider = ({ children }) => {
         }
       });
 
-      setMaterias((currentMaterias) => markMateriasWithPendingState(currentMaterias, getPendingSyncState(currentScope)));
-      scheduleSync(currentScope);
+      refreshPendingState(normalizedMaterias, currentScope);
+
+      if (isOnline && user?.uid) {
+        await syncNow(currentScope);
+      } else {
+        setMaterias((currentMaterias) => markMateriasWithPendingState(currentMaterias, getPendingSyncState(currentScope)));
+      }
     } catch (err) {
       setError('Erro ao salvar materias');
       console.error('Erro ao salvar materias:', err);
