@@ -2,12 +2,6 @@ const express = require('express');
 const cors = require('cors');
 const webPush = require('web-push');
 const {
-  getInitialForm,
-  parseDepartments,
-  searchTurmas,
-  filterDisciplinesByQuery
-} = require('./unb/sigaa');
-const {
   getDefaultSemester,
   getSemesterKey,
   getSnapshotStats,
@@ -33,15 +27,6 @@ const allowedOrigins = String(process.env.CORS_ORIGINS || '')
   .split(',')
   .map((origin) => origin.trim())
   .filter(Boolean);
-
-const cache = {
-  departments: null,
-  departmentsAt: 0,
-  baseSearches: new Map()
-};
-
-const DEPARTMENTS_TTL = 1000 * 60 * 60 * 6;
-const SEARCH_TTL = 1000 * 60 * 30;
 const PUSH_DISPATCH_INTERVAL = 1000 * 60 * 10;
 
 const vapidKeys = resolveVapidKeys();
@@ -114,10 +99,9 @@ const warmSnapshotInMemory = async ({ year, period }) => {
 
   if (snapshot) {
     snapshotState.snapshots.set(key, snapshot);
-    return snapshot;
   }
 
-  return refreshSnapshotWithLock({ year, period });
+  return snapshot || null;
 };
 
 const ensureWarmSnapshot = async ({ year, period }) => {
@@ -134,6 +118,16 @@ const ensureWarmSnapshot = async ({ year, period }) => {
   }
 
   return snapshotState.warmupPromise;
+};
+
+const getReadySnapshot = async (semester) => {
+  const snapshot = getSnapshotFromMemory(semester);
+
+  if (snapshot) {
+    return snapshot;
+  }
+
+  return ensureWarmSnapshot(semester);
 };
 
 const isLoopbackRequest = (req) => {
@@ -350,7 +344,7 @@ app.post('/api/push/test', async (req, res) => {
 app.get('/api/unb/departamentos', async (_req, res) => {
   try {
     const semester = getRequestSemester(_req);
-    const snapshot = await ensureWarmSnapshot(semester);
+    const snapshot = await getReadySnapshot(semester);
 
     if (snapshot?.departments?.length) {
       res.json({
@@ -362,20 +356,12 @@ app.get('/api/unb/departamentos', async (_req, res) => {
       return;
     }
 
-    const now = Date.now();
+    res.status(503).json({
+      message: 'Snapshot da UnB indisponivel. Atualize manualmente antes de consultar departamentos.',
+      semester
+    });
+    return;
 
-    if (cache.departments && now - cache.departmentsAt < DEPARTMENTS_TTL) {
-      res.json({ departments: cache.departments, cached: true });
-      return;
-    }
-
-    const { html } = await getInitialForm();
-    const departments = parseDepartments(html);
-
-    cache.departments = departments;
-    cache.departmentsAt = now;
-
-    res.json({ departments, cached: false });
   } catch (error) {
     res.status(500).json({
       message: 'Nao foi possivel carregar os departamentos da UnB.',
@@ -446,7 +432,7 @@ app.get('/api/unb/turmas', async (req, res) => {
     }
 
     const semester = { year, period };
-    const snapshot = await ensureWarmSnapshot(semester);
+    const snapshot = await getReadySnapshot(semester);
 
     if (snapshot) {
       const disciplines = querySnapshotSummaries(snapshot, { department, query });
@@ -461,26 +447,9 @@ app.get('/api/unb/turmas', async (req, res) => {
       return;
     }
 
-    const cacheKey = `${department}:${year}:${period}`;
-    const cached = cache.baseSearches.get(cacheKey);
-
-    let disciplines;
-    let cachedBase = false;
-
-    if (cached && Date.now() - cached.at < SEARCH_TTL) {
-      disciplines = cached.data;
-      cachedBase = true;
-    } else {
-      disciplines = await searchTurmas({ department, year, period });
-      cache.baseSearches.set(cacheKey, { data: disciplines, at: Date.now() });
-    }
-
-    const filteredDisciplines = filterDisciplinesByQuery(disciplines, query);
-
-    res.json({
-      disciplines: filteredDisciplines,
-      cached: cachedBase,
-      queryCached: Boolean(query) && cachedBase
+    res.status(503).json({
+      message: 'Snapshot da UnB indisponivel. Atualize manualmente antes de consultar turmas.',
+      semester
     });
   } catch (error) {
     res.status(500).json({
@@ -507,7 +476,7 @@ app.get('/api/unb/disciplina', async (req, res) => {
     }
 
     const semester = { year, period };
-    const snapshot = await ensureWarmSnapshot(semester);
+    const snapshot = await getReadySnapshot(semester);
 
     if (snapshot) {
       const discipline = querySnapshotDisciplineByCode(snapshot, { department, code });
@@ -526,18 +495,8 @@ app.get('/api/unb/disciplina', async (req, res) => {
       return;
     }
 
-    const disciplines = await searchTurmas({ department, year, period });
-    const discipline = disciplines.find((item) => item.code === code);
-
-    if (!discipline) {
-      res.status(404).json({ message: 'Disciplina nao encontrada para esse departamento.' });
-      return;
-    }
-
-    res.json({
-      discipline,
-      cached: false,
-      source: 'sigaa',
+    res.status(503).json({
+      message: 'Snapshot da UnB indisponivel. Atualize manualmente antes de consultar disciplinas.',
       semester
     });
   } catch (error) {
@@ -554,14 +513,12 @@ setInterval(() => {
   });
 }, PUSH_DISPATCH_INTERVAL);
 
-ensureWarmSnapshot(defaultSemester)
-  .catch((error) => {
-    console.error(`Erro ao preparar snapshot ${defaultSemester.year}/${defaultSemester.period}:`, error.message);
-  })
-  .finally(() => {
-    app.listen(port, host, () => {
-      console.log(`UnB API disponivel em http://${host}:${port}`);
-    });
-  });
+warmSnapshotInMemory(defaultSemester).catch((error) => {
+  console.error(`Erro ao carregar snapshot ${defaultSemester.year}/${defaultSemester.period}:`, error.message);
+});
+
+app.listen(port, host, () => {
+  console.log(`UnB API disponivel em http://${host}:${port}`);
+});
 
 module.exports = app;
