@@ -47,7 +47,7 @@ describe('materiasPersistence helpers', () => {
     expect(queue.deletes).toEqual(['m2']);
   });
 
-  it('mescla remoto com pendencias locais dando prioridade ao local', () => {
+  it('usa o remoto como fonte de verdade e aplica apenas pendencias locais', () => {
     const remoteMaterias = [
       { id: 'm1', nome: 'Calculo', horas: 60, pesoFalta: 1, faltas: 1, maxFaltas: 15 },
       { id: 'm2', nome: 'Fisica', horas: 60, pesoFalta: 1, faltas: 0, maxFaltas: 15 }
@@ -64,7 +64,7 @@ describe('materiasPersistence helpers', () => {
 
     const merged = mergeRemoteMateriasWithPending({ remoteMaterias, localMaterias, queue });
 
-    expect(merged.map((materia) => materia.id)).toEqual(['m1', 'm3']);
+    expect(merged.map((materia) => materia.id)).toEqual(['m1']);
     expect(merged.find((materia) => materia.id === 'm1')?.faltas).toBe(4);
     expect(merged.find((materia) => materia.id === 'm1')?.syncStatus).toBe('pending');
   });

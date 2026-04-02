@@ -150,12 +150,6 @@ export const mergeRemoteMateriasWithPending = ({ remoteMaterias, localMaterias, 
     byId.set(String(materia.id), materia);
   });
 
-  normalizeMateriaList(localMaterias).forEach((materia) => {
-    if (!byId.has(String(materia.id))) {
-      byId.set(String(materia.id), materia);
-    }
-  });
-
   Object.values(pendingUpserts).forEach((materia) => {
     byId.set(String(materia.id), normalizeMateriaRecord(materia));
   });
