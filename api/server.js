@@ -44,7 +44,6 @@ const cache = {
 const DEPARTMENTS_TTL = 1000 * 60 * 60 * 6;
 const SEARCH_TTL = 1000 * 60 * 30;
 const PUSH_DISPATCH_INTERVAL = 1000 * 60 * 10;
-const SNAPSHOT_MAINTENANCE_INTERVAL = 12 * 60 * 60 * 1000;
 
 const vapidKeys = resolveVapidKeys();
 webPush.setVapidDetails(vapidKeys.subject, vapidKeys.publicKey, vapidKeys.privateKey);
@@ -111,12 +110,12 @@ const refreshSnapshotWithLock = async ({ year, period }) => {
   return refreshPromise;
 };
 
-const ensureFreshSnapshotInBackground = ({ year, period }) => {
+const warmSnapshotInMemory = ({ year, period }) => {
   const snapshot = getSnapshotFromMemoryOrDisk({ year, period });
 
-  if (!snapshot || shouldRefreshSnapshot(snapshot)) {
+  if (!snapshot) {
     refreshSnapshotWithLock({ year, period }).catch((error) => {
-      console.error(`Erro ao atualizar snapshot ${year}/${period}:`, error.message);
+      console.error(`Erro ao aquecer snapshot ${year}/${period}:`, error.message);
     });
   }
 };
@@ -338,15 +337,12 @@ app.get('/api/unb/departamentos', async (_req, res) => {
     const snapshot = getSnapshotFromMemoryOrDisk(semester);
 
     if (snapshot?.departments?.length) {
-      if (shouldRefreshSnapshot(snapshot)) {
-        ensureFreshSnapshotInBackground(semester);
-      }
-
       res.json({
         departments: snapshot.departments,
         cached: true,
         source: 'snapshot',
-        semester
+        semester,
+        stale: shouldRefreshSnapshot(snapshot)
       });
       return;
     }
@@ -438,10 +434,6 @@ app.get('/api/unb/turmas', async (req, res) => {
     const snapshot = getSnapshotFromMemoryOrDisk(semester);
 
     if (snapshot) {
-      if (shouldRefreshSnapshot(snapshot)) {
-        ensureFreshSnapshotInBackground(semester);
-      }
-
       const disciplines = querySnapshotSummaries(snapshot, { department, query });
 
       res.json({
@@ -449,7 +441,8 @@ app.get('/api/unb/turmas', async (req, res) => {
         cached: true,
         queryCached: true,
         source: 'snapshot',
-        semester
+        semester,
+        stale: shouldRefreshSnapshot(snapshot)
       });
       return;
     }
@@ -503,10 +496,6 @@ app.get('/api/unb/disciplina', async (req, res) => {
     const snapshot = getSnapshotFromMemoryOrDisk(semester);
 
     if (snapshot) {
-      if (shouldRefreshSnapshot(snapshot)) {
-        ensureFreshSnapshotInBackground(semester);
-      }
-
       const discipline = querySnapshotDisciplineByCode(snapshot, { department, code });
 
       if (!discipline) {
@@ -518,7 +507,8 @@ app.get('/api/unb/disciplina', async (req, res) => {
         discipline,
         cached: true,
         source: 'snapshot',
-        semester
+        semester,
+        stale: shouldRefreshSnapshot(snapshot)
       });
       return;
     }
@@ -551,11 +541,7 @@ setInterval(() => {
   });
 }, PUSH_DISPATCH_INTERVAL);
 
-ensureFreshSnapshotInBackground(defaultSemester);
-
-setInterval(() => {
-  ensureFreshSnapshotInBackground(defaultSemester);
-}, SNAPSHOT_MAINTENANCE_INTERVAL);
+warmSnapshotInMemory(defaultSemester);
 
 app.listen(port, host, () => {
   console.log(`UnB API disponivel em http://${host}:${port}`);
