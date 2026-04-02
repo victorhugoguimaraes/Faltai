@@ -1,367 +1,303 @@
-<!--  --># 📚 Documentação do Projeto Faltaí
+# Faltai Technical Documentation
 
-## 📋 Visão Geral
-Sistema web para gerenciamento de faltas acadêmicas com suporte offline/online, notificações e gamificação.
+## 1. Project overview
 
----
+Faltai is split into two main parts:
 
-## 🏗️ Estrutura de Arquivos
+1. Frontend PWA
+   - React + Vite application
+   - runs on GitHub Pages
+   - handles UI, Firebase auth, local state, reminders, and user flows
 
-### 📁 `/src`
+2. UnB API
+   - Node + Express service
+   - runs separately on Render
+   - serves departments and classes from a semester snapshot
 
-#### **Arquivos Principais**
-- **`App.js`** - Componente principal da aplicação
-  - Gerencia rotas e estados globais
-  - Controla modais e navegação
-  - Integra todos os componentes principais
+This separation exists because GitHub Pages cannot run server-side scraping logic.
 
-- **`index.js`** - Ponto de entrada da aplicação
-  - Inicializa React
-  - Configura providers (Auth, Materias, Error)
-  - Registra Service Worker para PWA
+## 2. Frontend architecture
 
-- **`firebase.js`** - Configuração do Firebase
-  - Inicializa Auth e Firestore
-  - Suporta modo demo/local
-  - Exporta instâncias para toda aplicação
+Main entrypoints:
+- [main.jsx](/Users/victo/Faltai/src/main.jsx)
+- [App.jsx](/Users/victo/Faltai/src/app/App.jsx)
+- [providers.jsx](/Users/victo/Faltai/src/app/providers.jsx)
 
----
+High-level areas:
+- `src/app`
+  - app shell and providers
+- `src/components`
+  - reusable UI, modals, and layout pieces
+- `src/contexts`
+  - auth, errors, and subject state
+- `src/features`
+  - domain-focused logic for calendar, dashboard, notifications, schedule, and auth
+- `src/lib`
+  - environment resolution helpers
+- `src/services`
+  - service-layer integrations such as Firebase auth and notifications
+- `src/utils`
+  - validation, PWA helpers, assets, and storage utilities
 
-### 📁 `/src/components`
+Current feature grouping:
+- `features/auth`
+- `features/calendar`
+- `features/dashboard`
+- `features/home`
+- `features/materias`
+- `features/notifications`
+- `features/schedule`
 
-#### **Componentes de Modal**
-- **`AddMateriaModal.js`** - Modal para adicionar nova matéria
-- **`EditMateriaModal.js`** - Modal para editar matéria existente
-- **`DeleteMateriaModal.js`** - Modal de confirmação de exclusão
-- **`LogoutConfirmationModal.js`** - Confirma logout do usuário
-- **`LoginModal.js`** - Modal de login (email/Google)
-- **`RegisterModal.js`** - Modal de registro de novo usuário
-- **`ResetPasswordModal.js`** - Modal para recuperação de senha
-- **`AnonymousModal.js`** - Modal para usuários não autenticados
-- **`CalendarModal.js`** - Modal com calendário de faltas
+## 3. Data model on the frontend
 
-#### **Componentes de Visualização**
-- **`Home.js`** - Página inicial com cards de matérias
-- **`MateriaList.js`** - Lista de matérias com controles de faltas
-  - Exibe progresso de faltas
-  - Botões para adicionar/remover faltas
-  - Ações de editar/deletar matéria
-  
-- **`Dashboard.js`** - Painel com estatísticas e gráficos
-  - Gráficos de pizza e barras
-  - Estatísticas gerais
-  - Análise de faltas por matéria
+The core user object in practice revolves around:
+- subjects (`materias`)
+- absences
+- evaluations
+- imported class schedule blocks
+- reminder preferences
 
-- **`Login.js`** - Página de login completa
-- **`FaltaiCalendar.js`** - Calendário visual de faltas
-- **`AvaliacoesCalendario.js`** - Calendário de avaliações
-- **`CalendarioAcademico.js`** - Calendário acadêmico geral
+Important modules:
+- [materiasState.js](/Users/victo/Faltai/src/features/materias/lib/materiasState.js)
+- [turmasStorage.js](/Users/victo/Faltai/src/features/schedule/lib/turmasStorage.js)
+- [notificationState.js](/Users/victo/Faltai/src/features/notifications/lib/notificationState.js)
+- [dashboardMetrics.js](/Users/victo/Faltai/src/features/dashboard/lib/dashboardMetrics.js)
 
-#### **Componentes de Sistema**
-- **`NotificationManager.js`** - Gerenciador de notificações
-  - Exibe notificações in-app
-  - Gerencia permissões de notificação
-  - Configurações de tipos de notificação
-  
-- **`ScheduledNotifications.js`** - Lista de notificações agendadas
-- **`GamificationSystem.js`** - Sistema de conquistas e gamificação
+## 4. UnB API architecture
 
-#### **Componentes Comuns** (`/common`)
-- **`LoadingSpinner.js`** - Indicador de carregamento
-- **`NotificationToast.js`** - Toast de notificações temporárias
+Main files:
+- [server.js](/Users/victo/Faltai/api/server.js)
+- [sigaa.js](/Users/victo/Faltai/api/unb/sigaa.js)
+- [snapshotStore.js](/Users/victo/Faltai/api/unb/snapshotStore.js)
+- [pushStore.js](/Users/victo/Faltai/api/pushStore.js)
 
----
+### 4.1 What a snapshot is
 
-### 📁 `/src/contexts`
+A snapshot is a pre-generated semester dataset.
 
-#### **AuthContext.js**
-Gerencia autenticação e estado do usuário
-```javascript
-// Funções principais:
-- login(email, senha)           // Login com email/senha
-- loginGoogle()                  // Login com Google
-- register(nome, email, senha)  // Registro de novo usuário
-- logout()                       // Desconecta usuário
-- toggleMode()                   // Alterna online/offline
+Example:
+- `snapshot-2026-1.json`
 
-// Estados:
-- user                           // Dados do usuário atual
-- loading                        // Estado de carregamento
-- isOnline                       // Modo online (Firebase) ou offline (localStorage)
-```
+This file contains:
+- semester metadata
+- the list of departments
+- the disciplines grouped by department
+- classes for each discipline
+- refresh metadata
+- precomputed stats
 
-#### **MateriasContext.js**
-Gerencia estado e operações com matérias
-```javascript
-// Funções principais:
-- adicionarMateria(nome, horas, pesoFalta)  // Adiciona nova matéria
-- editarMateria(index, dados)               // Edita matéria existente
-- deletarMateria(index)                     // Remove matéria
-- atualizarFaltas(index, faltas, datas)     // Atualiza contador de faltas
-- adicionarFalta(index)                     // Adiciona uma falta
-- removerFalta(index)                       // Remove uma falta
+The goal is simple:
+- scrape SIGAA before the user needs the data
+- serve searches from local prepared data
 
-// Estados:
-- materias                                   // Array de todas as matérias
-```
+### 4.2 Why the API moved to snapshots
 
-#### **ErrorContext.js**
-Gerencia mensagens de erro e sucesso
-```javascript
-// Funções principais:
-- addError(message)                         // Adiciona mensagem de erro
-- addSuccess(message)                       // Adiciona mensagem de sucesso
-- addWarning(message)                       // Adiciona mensagem de aviso
-- clearErrors()                             // Limpa todas as mensagens
+The live scraper approach had a cold-start cost tied to:
+- the Render instance waking up
+- the API calling SIGAA
+- parsing HTML on the fly
 
-// Estados:
-- errors                                    // Array de mensagens
-```
+With snapshots:
+- the first user request no longer depends on scraping
+- searches are faster and more stable
+- refresh cost is moved to a weekly maintenance flow
 
----
+### 4.3 Snapshot lifecycle
 
-### 📁 `/src/services`
+The snapshot lifecycle is:
 
-#### **authService.js**
-Serviço de autenticação Firebase
-```javascript
-// Funções exportadas:
-- loginWithEmail(email, senha)              // Login com credenciais
-- registerUser(nome, email, senha)          // Registro de usuário
-- loginWithGoogle()                         // Login com Google (redirect mobile/popup desktop)
-- handleGoogleRedirect()                    // Processa redirect do Google
-- resetPassword(email)                      // Envia email de recuperação
-- logout()                                  // Faz logout
-```
+1. Determine active semester
+   - `UNB_SNAPSHOT_YEAR`
+   - `UNB_SNAPSHOT_PERIOD`
 
-#### **materiaService.js**
-Serviço CRUD de matérias
-```javascript
-// Funções exportadas:
-- addMateria(nome, horas, peso, materias, isOnline)    // Adiciona matéria
-- editMateria(index, nome, horas, peso, materias, isOnline)  // Edita matéria
-- deleteMateria(index, materias, isOnline)             // Remove matéria
-- addFalta(index, materias, isOnline)                  // Adiciona falta
-- removeFalta(index, materias, isOnline)               // Remove falta
+2. Refresh snapshot
+   - load departments from SIGAA
+   - fetch each department for the semester
+   - store the result in one JSON file
 
-// Cálculo automático: maxFaltas = Math.floor(horas * 0.25 / pesoFalta)
-```
+3. Prepare snapshot in memory
+   - normalize searchable fields once
+   - sort disciplines and classes once
+   - compute summary stats once
 
-#### **notificationService.js**
-Serviço de notificações push
-```javascript
-// Funções principais:
-- requestPermission()                       // Solicita permissão de notificação
-- init()                                    // Inicializa service worker
-- scheduleNotification(data)                // Agenda notificação
-- sendPushNotification(title, body, data)   // Envia notificação push
-```
+4. Serve requests
+   - `/api/unb/departamentos`
+   - `/api/unb/turmas`
 
----
+5. Refresh again when stale
+   - stale threshold: 7 days
 
-### 📁 `/src/utils`
+### 4.4 Why one snapshot per semester
 
-#### **validation.js**
-Funções de validação de dados
-```javascript
-// Validações de campos:
-- validateEmail(email)                      // Valida formato de email
-- validatePassword(password)                // Valida requisitos de senha
-- validateMateria(materia)                  // Valida dados de matéria
-- validateAvaliacao(avaliacao)              // Valida dados de avaliação
-- validateFalta(falta)                      // Valida dados de falta
-- validateUser(userData)                    // Valida dados de usuário
+This was chosen over one file per department because it gave the best balance of:
+- simpler deployment
+- easier inspection and backup
+- very good performance
+- fewer files to manage
 
-// Validações genéricas:
-- validateRequired(value, fieldName)        // Valida campo obrigatório
-- validateLength(value, min, max, name)     // Valida tamanho de string
-- validateRange(value, min, max, name)      // Valida intervalo numérico
+The API still stores disciplines grouped by department inside the single file, so lookups remain simple.
 
-// Sanitização:
-- sanitizeMateria(materia)                  // Limpa e normaliza dados
-```
+### 4.5 Refresh model
 
-#### **pwaUtils.js**
-Utilitários para Progressive Web App
-```javascript
-// Funções principais:
-- registerServiceWorker()                   // Registra service worker
-- checkForUpdates()                         // Verifica atualizações
-- cacheResources()                          // Armazena recursos em cache
-- isOnline()                                // Verifica conectividade
-```
+Automatic refresh:
+- the API checks snapshot freshness on startup
+- the API checks again periodically
+- if the snapshot is older than 7 days, it refreshes in background
 
----
+Manual refresh:
+- `POST /api/unb/snapshot/refresh?year=2026&period=1`
+- if `UNB_SNAPSHOT_ADMIN_KEY` is configured, send it in `x-snapshot-admin-key`
 
-## 🔄 Fluxo de Dados
+Status endpoint:
+- `GET /api/unb/snapshot/status?year=2026&period=1`
 
-### Login/Autenticação
-```
-1. Usuário → LoginModal/RegisterModal
-2. authService → Firebase Auth
-3. AuthContext → Atualiza estado global
-4. App.js → Renderiza conteúdo autenticado
-```
+## 5. Search flow
 
-### Gerenciamento de Matérias
-```
-1. Usuário → AddMateriaModal/EditMateriaModal
-2. Validação → validation.js
-3. materiaService → Firebase Firestore (se online) ou localStorage
-4. MateriasContext → Atualiza estado
-5. MateriaList → Re-renderiza com novos dados
-```
+### Departments
 
-### Notificações
-```
-1. NotificationManager → Verifica eventos
-2. notificationService → Agenda notificações
-3. Service Worker → Exibe notificação em background
-4. Usuário clica → App abre/foca
-```
+Request:
+- `GET /api/unb/departamentos`
 
----
+Flow:
+1. try snapshot
+2. if snapshot exists, return departments from snapshot
+3. if snapshot is stale, trigger background refresh
+4. if no snapshot exists, fall back to live SIGAA fetch
 
-## 💾 Armazenamento
+### Classes
 
-### **LocalStorage**
-- `materias` - Array de matérias (modo offline)
-- `isOnline` - Flag de modo online/offline
-- `app_notifications` - Notificações da aplicação
-- `notification_settings` - Configurações de notificação
+Request:
+- `GET /api/unb/turmas?department=508&year=2026&period=1&query=pesquisa`
 
-### **Firebase Firestore**
-```
-/usuarios/{uid}/
-  ├── nome: string
-  ├── email: string
-  └── materias: [
-      {
-        nome: string,
-        horas: number,
-        faltas: number,
-        maxFaltas: number,
-        pesoFalta: number,
-        datasFaltas: string[],
-        avaliacoes: object[]
-      }
-    ]
-```
+Flow:
+1. validate `department`
+2. resolve semester
+3. try snapshot
+4. if snapshot exists, run in-memory search
+5. if snapshot is stale, keep serving current snapshot and refresh in background
+6. if no snapshot exists, fall back to the live scraper path
 
----
+## 6. Performance notes
 
-## 🎨 Padrões de Código
+Important implementation choices:
+- searchable strings are normalized once during snapshot preparation
+- stats are precomputed and cached in the snapshot object
+- classes and disciplines are sorted once
+- snapshot writes are asynchronous
+- prepared helper fields stay only in memory and are stripped before writing JSON
 
-### Estrutura de Componente React
-```javascript
-import React, { useState, useEffect } from 'react';
+This means the API spends less CPU on:
+- repeated string normalization
+- repeated sorting
+- repeated nested reductions for stats
 
-/**
- * Descrição do componente
- * @param {Object} props - Props do componente
- */
-function ComponentName({ prop1, prop2 }) {
-  // Estados
-  const [state, setState] = useState(initialValue);
-  
-  // Effects
-  useEffect(() => {
-    // Efeito
-  }, [dependências]);
-  
-  // Handlers
-  const handleAction = () => {
-    // Lógica
-  };
-  
-  // Render
-  return (
-    <div>
-      {/* JSX */}
-    </div>
-  );
-}
+## 7. Push notifications
 
-export default ComponentName;
-```
+Frontend pieces:
+- [notificationService.js](/Users/victo/Faltai/src/services/notificationService.js)
+- [pushNotifications.js](/Users/victo/Faltai/src/features/notifications/lib/pushNotifications.js)
 
-### Estrutura de Serviço
-```javascript
-/**
- * @fileoverview Descrição do serviço
- */
+Backend pieces:
+- [server.js](/Users/victo/Faltai/api/server.js)
+- [pushStore.js](/Users/victo/Faltai/api/pushStore.js)
 
-/**
- * Descrição da função
- * @param {type} param - Descrição
- * @returns {type} Descrição do retorno
- */
-export const functionName = async (param) => {
-  try {
-    // Lógica
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, message: error.message };
-  }
-};
-```
+Relevant endpoints:
+- `GET /api/push/public-key`
+- `POST /api/push/subscribe`
+- `POST /api/push/settings`
+- `POST /api/push/unsubscribe`
+- `POST /api/push/test`
 
----
+Push behavior:
+- the frontend stores reminder preferences
+- subscriptions are persisted on the backend
+- weekly reminder dispatch runs on the API
 
-## 🚀 Scripts Disponíveis
+## 8. Environment variables
+
+### Frontend
 
 ```bash
-npm start          # Inicia servidor de desenvolvimento
-npm run build      # Cria build de produção
-npm test           # Executa testes
-npm run lint       # Verifica código
+VITE_FIREBASE_API_KEY=
+VITE_FIREBASE_AUTH_DOMAIN=
+VITE_FIREBASE_DATABASE_URL=
+VITE_FIREBASE_PROJECT_ID=
+VITE_FIREBASE_STORAGE_BUCKET=
+VITE_FIREBASE_MESSAGING_SENDER_ID=
+VITE_FIREBASE_APP_ID=
+VITE_FIREBASE_MEASUREMENT_ID=
+VITE_API_URL=
+VITE_UNB_API_URL=
 ```
 
----
+### Backend
 
-## 🔐 Variáveis de Ambiente
-
-Criar arquivo `.env` na raiz:
-```env
-REACT_APP_FIREBASE_API_KEY=sua_api_key
-REACT_APP_FIREBASE_AUTH_DOMAIN=seu_dominio.firebaseapp.com
-REACT_APP_FIREBASE_PROJECT_ID=seu_projeto_id
-REACT_APP_FIREBASE_STORAGE_BUCKET=seu_bucket.appspot.com
-REACT_APP_FIREBASE_MESSAGING_SENDER_ID=seu_sender_id
-REACT_APP_FIREBASE_APP_ID=seu_app_id
+```bash
+UNB_API_PORT=8787
+UNB_API_HOST=0.0.0.0
+CORS_ORIGINS=http://localhost:5173,http://localhost:5174,https://victorhugoguimaraes.github.io
+UNB_SNAPSHOT_YEAR=2026
+UNB_SNAPSHOT_PERIOD=1
+UNB_SNAPSHOT_CONCURRENCY=3
+UNB_SNAPSHOT_ADMIN_KEY=
+VAPID_PUBLIC_KEY=
+VAPID_PRIVATE_KEY=
+VAPID_SUBJECT=mailto:you@example.com
 ```
 
----
+## 9. Local commands
 
-## 📱 Features Implementadas
+Install:
 
-- ✅ Autenticação (Email/Senha + Google)
-- ✅ CRUD de Matérias
-- ✅ Controle de Faltas
-- ✅ Modo Offline/Online
-- ✅ Notificações Push
-- ✅ Calendário de Faltas
-- ✅ Dashboard com Estatísticas
-- ✅ Sistema de Gamificação
-- ✅ Responsividade Mobile
-- ✅ PWA (Progressive Web App)
-
----
-
-## 🐛 Debugging
-
-### Modo de Desenvolvimento
-```javascript
-// Ver estado atual no console
-console.log('Materias:', materias);
-console.log('User:', user);
-console.log('Online:', isOnline);
+```bash
+npm install
 ```
 
-### Verificar Firebase
-```javascript
-// No console do navegador
-console.log(firebase.auth().currentUser);
+Run frontend:
+
+```bash
+npm run dev
 ```
 
+Run API:
 
+```bash
+npm run dev:api
+```
+
+Run tests:
+
+```bash
+npm run test:ci
+```
+
+Build:
+
+```bash
+npm run build
+```
+
+## 10. Production deployment
+
+Frontend:
+- GitHub Pages
+- workflow reads `VITE_API_URL` or `VITE_UNB_API_URL`
+
+Backend:
+- Render service defined by [render.yaml](/Users/victo/Faltai/render.yaml)
+- update env vars in Render
+- deploy latest commit
+- trigger one manual snapshot refresh after deploy
+
+## 11. Testing and profiling
+
+Main automated validation:
+- `npm run test:ci`
+- `npm run build`
+
+Snapshot and performance experiments are intentionally kept outside the main runtime path.
+
+Profiling recommendation:
+- use Node CPU profiles with `node --cpu-prof`
+- profile snapshot search separately from network-bound requests
+- compare local snapshot performance against production latency to isolate infra cost from algorithm cost

@@ -1,115 +1,62 @@
 # Faltai
 
-Aplicacao web progressiva para controle de faltas academicas, com foco em uso mobile, notificacoes e acompanhamento rapido da situacao de cada materia.
+Faltai is a mobile-first PWA for tracking class absences, schedule blocks, academic events, reminders, and semester risk in one place.
 
-**Acesse a aplicacao:** [https://victorhugoguimaraes.github.io/Faltai/](https://victorhugoguimaraes.github.io/Faltai/)
+Live app:
+[https://victorhugoguimaraes.github.io/Faltai/](https://victorhugoguimaraes.github.io/Faltai/)
 
-## O que mudou nesta versao
+## Current stack
 
-- Shell mobile-first com header compacto, atalhos mais fortes e navegacao inferior fixa
-- Estrutura de projeto reorganizada para ficar mais clara no GitHub
-- Migracao de Create React App para Vite + Vitest
-- Fluxos de auth e notificacoes mais robustos
-- Ambiente atualizado para reduzir vulnerabilidades e melhorar manutencao
+- Frontend: React 19 + Vite 6
+- Tests: Vitest + Testing Library
+- Auth and user data: Firebase
+- Public UnB class search API: Node + Express
+- Hosting:
+  - Frontend on GitHub Pages
+  - UnB API on Render
 
-## Funcionalidades
+## Main features
 
-- Cadastro, edicao e exclusao de materias
-- Controle de faltas com calculo automatico do limite permitido
-- Calendario de faltas por materia
-- Calendario academico e calendario de avaliacoes
-- Dashboard com graficos, tendencias e materias em risco
-- Notificacoes locais e lembretes configuraveis
-- Login com Firebase Authentication e modo local quando Firebase nao estiver configurado
-- PWA com suporte offline basico
+- Subject CRUD with absence tracking
+- Weekly schedule assembled from imported classes
+- Academic calendar and evaluation calendar
+- Semester dashboard with useful summaries
+- Reminder settings and web push support
+- Google login and local fallback mode when Firebase is not configured
+- UnB SIGAA search through a dedicated API
 
-## Stack
+## UnB API architecture
 
-### Frontend
+The UnB API now works with one snapshot per semester.
 
-- React 19
-- Vite 6
-- Tailwind CSS 3
-- React Icons
-- React Calendar
-- Chart.js + React Chartjs 2
+What that means:
+- the API generates a file like `snapshot-2026-1.json`
+- this file stores departments, disciplines, and classes for that semester
+- user searches query the snapshot instead of scraping SIGAA on every request
+- the snapshot is refreshed weekly
+- a manual refresh endpoint is available when needed
 
-### Backend e servicos
+Why this exists:
+- much faster first search
+- much more predictable performance
+- less dependency on SIGAA response time
+- less scraping work during user requests
 
-- Firebase Authentication
-- Firestore
-- Firebase Analytics quando suportado pelo navegador
-- API Node para consulta publica de turmas da UnB via SIGAA
+Useful endpoints:
+- `GET /api/health`
+- `GET /api/unb/departamentos`
+- `GET /api/unb/turmas?department=508&year=2026&period=1&query=pesquisa`
+- `GET /api/unb/snapshot/status?year=2026&period=1`
+- `POST /api/unb/snapshot/refresh?year=2026&period=1`
 
-### Qualidade
+## Local development
 
-- Vitest
-- Testing Library
-- GitHub Actions para teste, build e deploy no GitHub Pages
-
-## Design e experiencia mobile
-
-O app foi reorganizado para parecer mais um produto instalado do que uma pagina tradicional:
-
-- header mais compacto
-- hero inicial com resumo rapido
-- navegacao inferior fixa para uso com o polegar
-- FAB para adicionar materia
-- cards de acao com atalhos para agenda e insights
-- central de avisos mais acessivel
-
-## Estrutura do projeto
-
-```text
-Faltai/
-├── docs/
-│   ├── DOCUMENTATION.md
-│   └── SECURITY.md
-├── public/
-│   ├── icon-192.png
-│   ├── icon-512.png
-│   ├── manifest.json
-│   └── sw/
-│       └── sw.js
-├── src/
-│   ├── app/
-│   │   ├── App.jsx
-│   │   └── providers.jsx
-│   ├── components/
-│   │   ├── common/
-│   │   ├── layout/
-│   │   └── *.jsx
-│   ├── contexts/
-│   ├── features/
-│   │   ├── calendar/
-│   │   ├── dashboard/
-│   │   └── home/
-│   ├── lib/
-│   │   └── env.js
-│   ├── services/
-│   ├── styles/
-│   │   └── tokens.css
-│   ├── utils/
-│   ├── App.js
-│   ├── firebase.js
-│   ├── index.css
-│   ├── main.jsx
-│   └── setupTests.js
-├── index.html
-├── vite.config.js
-├── package.json
-└── README.md
-```
-
-## Como rodar
-
-### Requisitos
-
-- Node.js 18 ou superior
+Requirements:
+- Node.js 18+
 - npm
-- Projeto Firebase, se quiser usar auth e persistencia online
+- Firebase project if you want full auth/persistence locally
 
-### Instalacao
+Install:
 
 ```bash
 git clone https://github.com/victorhugoguimaraes/Faltai.git
@@ -117,102 +64,91 @@ cd Faltai
 npm install
 ```
 
-### Configuracao do Firebase
+Run frontend:
 
-1. Crie um projeto no Firebase Console.
-2. Ative Authentication e Firestore.
-3. Copie as credenciais do app web.
-4. Crie o arquivo `.env.local` a partir de `.env.example`.
-5. Preencha as variaveis `VITE_FIREBASE_*`.
+```bash
+npm run dev
+```
 
-Exemplo:
+Run API:
+
+```bash
+npm run dev:api
+```
+
+Frontend usually opens on:
+- `http://localhost:5173`
+- `http://localhost:5174`
+
+API usually runs on:
+- `http://localhost:8787`
+
+## Environment variables
+
+Frontend:
 
 ```bash
 VITE_FIREBASE_API_KEY=...
 VITE_FIREBASE_AUTH_DOMAIN=...
+VITE_FIREBASE_DATABASE_URL=...
 VITE_FIREBASE_PROJECT_ID=...
 VITE_FIREBASE_STORAGE_BUCKET=...
 VITE_FIREBASE_MESSAGING_SENDER_ID=...
 VITE_FIREBASE_APP_ID=...
 VITE_FIREBASE_MEASUREMENT_ID=...
-VITE_FIREBASE_DATABASE_URL=...
+VITE_API_URL=http://localhost:8787
+VITE_UNB_API_URL=http://localhost:8787
 ```
 
-Sem essas variaveis, o projeto continua funcional em modo local para desenvolvimento basico.
-
-### Desenvolvimento
+Backend:
 
 ```bash
-npm run dev:api
-npm run dev
+UNB_API_PORT=8787
+UNB_API_HOST=0.0.0.0
+CORS_ORIGINS=http://localhost:5173,http://localhost:5174,https://victorhugoguimaraes.github.io
+UNB_SNAPSHOT_YEAR=2026
+UNB_SNAPSHOT_PERIOD=1
+UNB_SNAPSHOT_CONCURRENCY=3
+UNB_SNAPSHOT_ADMIN_KEY=change-me
 ```
 
-O front abre normalmente em `http://localhost:5173` ou `http://localhost:5174`, e a API da UnB fica em `http://localhost:8787`.
+Notes:
+- `VITE_API_URL` is the preferred frontend API variable
+- `VITE_UNB_API_URL` is still supported as fallback
+- snapshot files are stored under `api/data/snapshots`
 
-### Testes
+## Quality checks
+
+Run tests:
 
 ```bash
 npm run test:ci
 ```
 
-### Build
+Run production build:
 
 ```bash
 npm run build
 ```
 
-O output final fica em `dist/`.
-
-### Deploy do front
-
-O front do Faltai fica no GitHub Pages. O workflow `.github/workflows/ci-pages.yml` já publica o `dist/` automaticamente.
-
-Para a busca de turmas da UnB funcionar em produção, configure no repositório do GitHub a variável:
-
-```text
-Settings > Secrets and variables > Actions > Variables
-VITE_UNB_API_URL=https://sua-api-em-producao.onrender.com
-```
-
-### Deploy da API da UnB
-
-A API não pode ficar no GitHub Pages, porque ela faz scraping do SIGAA no servidor. O projeto já vem pronto para subir no Render usando [render.yaml](/home/victor/Faltai/render.yaml).
-
-Variáveis recomendadas no serviço da API:
+Run both:
 
 ```bash
-CORS_ORIGINS=https://victorhugoguimaraes.github.io,http://localhost:5173,http://localhost:5174
-PORT=10000
+npm run verify
 ```
 
-Depois do deploy da API, copie a URL pública e use em `VITE_UNB_API_URL` no workflow do GitHub Pages.
+## Deploy overview
 
-### Deploy manual
+Frontend:
+- GitHub Pages publishes from the GitHub Actions workflow
+- set `VITE_API_URL` or `VITE_UNB_API_URL` in repository variables
 
-Se quiser publicar só o front manualmente:
+Backend:
+- Render runs the Express API using [render.yaml](/Users/victo/Faltai/render.yaml)
+- keep `CORS_ORIGINS` aligned with the GitHub Pages domain
+- after deploy, trigger one manual snapshot refresh to warm the semester
 
-```bash
-npm run deploy
-```
+## Documentation
 
-Mas a busca da UnB em produção só funciona com a API publicada separadamente.
-
-## Qualidade e manutencao
-
-- Testes para validacao, assets e persistencia local
-- Separacao melhor entre shell do app, layout e telas de feature
-- Variaveis de ambiente centralizadas
-- Build com code splitting e chunks dedicados para dependencias pesadas
-- Auditoria de dependencias sem vulnerabilidades na ultima validacao local
-
-## Proximos passos recomendados
-
-- Continuar quebrando componentes grandes como `Dashboard` e `NotificationManager`
-- Expandir testes para fluxos de auth e materias
-- Refinar ainda mais o fluxo de agenda mobile com bottom sheets e gestos
-- Avaliar extracao de mais regras de negocio para `features/` e `lib/`
-
-## Documentacao adicional
-
-- [Documentacao tecnica](./docs/DOCUMENTATION.md)
-- [Seguranca](./docs/SECURITY.md)
+- Technical documentation: [docs/DOCUMENTATION.md](/Users/victo/Faltai/docs/DOCUMENTATION.md)
+- Security notes: [docs/SECURITY.md](/Users/victo/Faltai/docs/SECURITY.md)
