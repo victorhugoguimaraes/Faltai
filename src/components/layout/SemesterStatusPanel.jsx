@@ -99,7 +99,7 @@ function SemesterStatusPanel({
           <DetailRow label="Faltas acumuladas" value={String(totalFaltas)} />
           <DetailRow
             label="Aulas de hoje"
-            value={todayClassesCount === 0 ? 'Sem aulas' : `${todayClassesCount} bloco${todayClassesCount > 1 ? 's' : ''}`}
+            value={todayClassesCount === 0 ? 'Sem aulas' : `${todayClassesCount} aula${todayClassesCount > 1 ? 's' : ''}`}
           />
         </div>
       </section>

@@ -191,7 +191,7 @@ function Dashboard({ onClose }) {
               {semesterHealth >= 70 ? 'Semestre bem encaminhado' : semesterHealth >= 45 ? 'Semana pede calibragem' : 'Semestre em zona critica'}
             </h2>
             <p className="mt-3 text-sm leading-6 text-slate-600">
-              Este painel resume o que realmente pede decisao agora: risco de faltas, proxima pressao academica e ritmo da semana.
+              Este painel resume o que realmente pede decisao agora: risco de faltas, proxima pressao academica e foco imediato da semana.
             </p>
           </div>
 

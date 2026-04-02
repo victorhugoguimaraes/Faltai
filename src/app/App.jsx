@@ -53,7 +53,6 @@ const DeleteMateriaModal = lazy(() => import('../components/DeleteMateriaModal')
 const LogoutConfirmationModal = lazy(() => import('../components/LogoutConfirmationModal'));
 const Dashboard = lazy(() => import('../components/Dashboard'));
 const CalendarioAcademico = lazy(() => import('../components/CalendarioAcademico'));
-const AvaliacoesCalendario = lazy(() => import('../components/AvaliacoesCalendario'));
 
 const NAV_ITEMS = [
   { id: 'materias', label: 'Materias', icon: FaClipboardList },
@@ -133,7 +132,6 @@ function App() {
   const [logoutModalOpen, setLogoutModalOpen] = useState(false);
   const [dashboardOpen, setDashboardOpen] = useState(false);
   const [academicCalendarOpen, setAcademicCalendarOpen] = useState(false);
-  const [evaluationsCalendarOpen, setEvaluationsCalendarOpen] = useState(false);
   const [materiaCalendarOverlayOpen, setMateriaCalendarOverlayOpen] = useState(false);
   const [syncOptionsOpen, setSyncOptionsOpen] = useState(false);
   const [remindersOpen, setRemindersOpen] = useState(false);
@@ -289,10 +287,10 @@ function App() {
     if (overview.proximasAvaliacoes.length > 0 || overview.attendancePercentage >= 55) {
       return {
         tone: 'attention',
-        badge: 'ritmo',
+        badge: 'atencao',
         title: 'Semestre sob observacao',
         description: overview.proximasAvaliacoes[0]
-          ? `A proxima avaliacao de ${overview.proximasAvaliacoes[0].materia} ajuda a ditar o ritmo dos proximos dias.`
+          ? `A proxima avaliacao de ${overview.proximasAvaliacoes[0].materia} deve orientar suas prioridades nos proximos dias.`
           : 'Sua leitura geral esta boa, mas vale acompanhar faltas e entregas mais de perto.'
       };
     }
@@ -706,8 +704,7 @@ function App() {
             {activeView === 'agenda' && (
               <CalendarHub
                 proximasAvaliacoes={overview.proximasAvaliacoes}
-                onOpenAcademicCalendar={() => setAcademicCalendarOpen(true)}
-                onOpenEvaluationsCalendar={() => setEvaluationsCalendarOpen(true)}
+                onOpenCalendar={() => setAcademicCalendarOpen(true)}
                 onSyncCalendar={() => setSyncOptionsOpen(true)}
               />
             )}
@@ -746,12 +743,6 @@ function App() {
             setMaterias={() => {}}
             isOnline={false}
             onClose={() => setAcademicCalendarOpen(false)}
-          />
-        )}
-        {evaluationsCalendarOpen && (
-          <AvaliacoesCalendario
-            materias={materias}
-            onClose={() => setEvaluationsCalendarOpen(false)}
           />
         )}
       </Suspense>

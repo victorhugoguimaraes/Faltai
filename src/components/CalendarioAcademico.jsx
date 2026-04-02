@@ -6,40 +6,82 @@ import {
   FaCalendarAlt,
   FaClipboardCheck,
   FaGraduationCap,
-  FaHourglassHalf
+  FaHourglassHalf,
+  FaInbox
 } from 'react-icons/fa';
+import { useMaterias } from '../contexts/MateriasContext';
 import BottomSheet from './layout/BottomSheet';
 import {
   academicEventTypes,
   buildAcademicEvent,
-  getEventsForDay,
   loadAcademicEvents,
   persistAcademicEvents
 } from '../features/calendar/lib/academicEvents';
 import { formatLocalDate, formatLocalDateLabel, parseLocalDateValue } from '../utils/dates';
 
+const mergedEventTypes = {
+  ...academicEventTypes,
+  ENTREGA: {
+    nome: 'Entrega',
+    cor: 'bg-violet-100 border-violet-500',
+    dotColor: 'bg-violet-500'
+  }
+};
+
 const eventIcons = {
   AULA: <FaBook className="text-sky-500" />,
   PROVA: <FaClipboardCheck className="text-rose-500" />,
   TRABALHO: <FaGraduationCap className="text-emerald-500" />,
+  ENTREGA: <FaInbox className="text-violet-500" />,
   FERIADO: <FaCalendarAlt className="text-slate-500" />,
   PRAZO: <FaHourglassHalf className="text-amber-500" />,
   OUTRO: <FaBell className="text-fuchsia-500" />
 };
 
-const eventPriority = ['PROVA', 'PRAZO', 'TRABALHO', 'FERIADO', 'AULA', 'OUTRO'];
+const eventPriority = ['PROVA', 'TRABALHO', 'ENTREGA', 'PRAZO', 'FERIADO', 'AULA', 'OUTRO'];
 
 const eventTileClassByType = {
   AULA: 'faltai-calendar__tile--aula',
   PROVA: 'faltai-calendar__tile--prova',
   TRABALHO: 'faltai-calendar__tile--trabalho',
+  ENTREGA: 'faltai-calendar__tile--outro',
   FERIADO: 'faltai-calendar__tile--feriado',
   PRAZO: 'faltai-calendar__tile--prazo',
   OUTRO: 'faltai-calendar__tile--outro'
 };
 
-function CalendarioAcademico({ materias, onClose }) {
-  const [eventos, setEventos] = useState(loadAcademicEvents);
+const sortEventsByDate = (left, right) => {
+  const dateDiff = parseLocalDateValue(left.data) - parseLocalDateValue(right.data);
+  if (dateDiff !== 0) {
+    return dateDiff;
+  }
+
+  return String(left.horario || '99:99').localeCompare(String(right.horario || '99:99'));
+};
+
+const getEventsForDay = (events, date) => {
+  const day = formatLocalDate(date);
+  return events.filter((event) => formatLocalDate(event.data) === day);
+};
+
+const normalizeMateriaEvents = (materias) =>
+  materias.flatMap((materia, materiaIndex) =>
+    (materia.avaliacoes || []).map((avaliacao, avaliacaoIndex) => ({
+      id: `materia-${materiaIndex}-${avaliacao.id || avaliacaoIndex}`,
+      titulo: avaliacao.descricao || mergedEventTypes[avaliacao.tipo]?.nome || 'Compromisso',
+      tipo: avaliacao.tipo || 'OUTRO',
+      materia: materia.nome || '',
+      descricao: avaliacao.descricao || '',
+      data: avaliacao.data,
+      horario: avaliacao.horario || '',
+      source: 'materia'
+    }))
+  );
+
+function CalendarioAcademico({ materias: materiasProp, onClose }) {
+  const { editarMateria, materias: materiasContexto } = useMaterias();
+  const materias = Array.isArray(materiasProp) ? materiasProp : materiasContexto;
+  const [eventosLocais, setEventosLocais] = useState(loadAcademicEvents);
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [modalAberto, setModalAberto] = useState(false);
   const [novoEvento, setNovoEvento] = useState({
@@ -52,48 +94,44 @@ function CalendarioAcademico({ materias, onClose }) {
   });
 
   useEffect(() => {
-    persistAcademicEvents(eventos);
-  }, [eventos]);
+    persistAcademicEvents(eventosLocais);
+  }, [eventosLocais]);
 
-  const eventosSelecionados = useMemo(() => {
-    return eventos
-      .filter((evento) => formatLocalDate(evento.data) === formatLocalDate(selectedDate))
-      .sort((a, b) => parseLocalDateValue(a.data) - parseLocalDateValue(b.data));
-  }, [eventos, selectedDate]);
+  const eventosSincronizados = useMemo(() => normalizeMateriaEvents(materias || []), [materias]);
+
+  const eventosCompletos = useMemo(
+    () => [...eventosLocais, ...eventosSincronizados].sort(sortEventsByDate),
+    [eventosLocais, eventosSincronizados]
+  );
+
+  const eventosSelecionados = useMemo(
+    () => getEventsForDay(eventosCompletos, selectedDate).sort(sortEventsByDate),
+    [eventosCompletos, selectedDate]
+  );
 
   const proximosMarcos = useMemo(() => {
     const today = formatLocalDate(new Date());
-
-    return eventos
+    return eventosCompletos
       .filter((evento) => formatLocalDate(evento.data) >= today)
-      .sort((a, b) => parseLocalDateValue(a.data) - parseLocalDateValue(b.data))
+      .sort(sortEventsByDate)
       .slice(0, 5);
-  }, [eventos]);
+  }, [eventosCompletos]);
 
-  const resumoSemestre = useMemo(() => {
-    const totalPrazos = eventos.filter((evento) => evento.tipo === 'PRAZO').length;
-    const totalAulas = eventos.filter((evento) => evento.tipo === 'AULA').length;
-    const totalFeriados = eventos.filter((evento) => evento.tipo === 'FERIADO').length;
-
-    return {
-      totalPrazos,
-      totalAulas,
-      totalFeriados
-    };
-  }, [eventos]);
+  const resumoSemestre = useMemo(
+    () => ({
+      totalPrazos: eventosCompletos.filter((evento) => ['PRAZO', 'ENTREGA'].includes(evento.tipo)).length,
+      totalAulas: eventosCompletos.filter((evento) => evento.tipo === 'AULA').length,
+      totalFeriados: eventosCompletos.filter((evento) => evento.tipo === 'FERIADO').length
+    }),
+    [eventosCompletos]
+  );
 
   const handleDateClick = (date) => {
     setSelectedDate(date);
     setNovoEvento((current) => ({ ...current, data: date }));
   };
 
-  const adicionarEvento = () => {
-    if (!novoEvento.titulo.trim()) {
-      return;
-    }
-
-    setEventos((current) => [...current, buildAcademicEvent(novoEvento)]);
-    setModalAberto(false);
+  const resetNovoEvento = () => {
     setNovoEvento({
       titulo: '',
       tipo: 'AULA',
@@ -104,8 +142,42 @@ function CalendarioAcademico({ materias, onClose }) {
     });
   };
 
+  const adicionarEvento = async () => {
+    if (!novoEvento.titulo.trim()) {
+      return;
+    }
+
+    if (novoEvento.materia) {
+      const materiaIndex = (materias || []).findIndex((materia) => materia.nome === novoEvento.materia);
+
+      if (materiaIndex >= 0) {
+        const materia = materias[materiaIndex];
+        await editarMateria(materiaIndex, {
+          ...materia,
+          avaliacoes: [
+            ...(materia.avaliacoes || []),
+            {
+              id: Date.now(),
+              tipo: novoEvento.tipo,
+              data: formatLocalDate(novoEvento.data),
+              horario: novoEvento.horario,
+              descricao: novoEvento.titulo.trim()
+            }
+          ]
+        });
+        setModalAberto(false);
+        resetNovoEvento();
+        return;
+      }
+    }
+
+    setEventosLocais((current) => [...current, buildAcademicEvent(novoEvento)]);
+    setModalAberto(false);
+    resetNovoEvento();
+  };
+
   const tileContent = ({ date }) => {
-    const eventosNoDia = getEventsForDay(eventos, date);
+    const eventosNoDia = getEventsForDay(eventosCompletos, date);
     if (eventosNoDia.length === 0) {
       return null;
     }
@@ -115,7 +187,7 @@ function CalendarioAcademico({ materias, onClose }) {
         {eventosNoDia.slice(0, 3).map((evento) => (
           <div
             key={evento.id}
-            className={`h-2 w-2 rounded-full ${academicEventTypes[evento.tipo]?.dotColor || 'bg-slate-300'}`}
+            className={`h-2 w-2 rounded-full ${mergedEventTypes[evento.tipo]?.dotColor || 'bg-slate-300'}`}
           />
         ))}
       </div>
@@ -124,7 +196,7 @@ function CalendarioAcademico({ materias, onClose }) {
 
   const tileClassName = ({ date }) => {
     const classes = ['faltai-calendar__tile'];
-    const eventosNoDia = getEventsForDay(eventos, date);
+    const eventosNoDia = getEventsForDay(eventosCompletos, date);
 
     if (eventosNoDia.length > 0) {
       const tiposDoDia = [...new Set(eventosNoDia.map((evento) => evento.tipo))];
@@ -217,9 +289,9 @@ function CalendarioAcademico({ materias, onClose }) {
                     eventosSelecionados.map((evento) => (
                       <div key={evento.id} className="rounded-2xl bg-white p-4 shadow-sm">
                         <div className="mb-2 flex items-center gap-2">
-                          {eventIcons[evento.tipo]}
+                          {eventIcons[evento.tipo] || eventIcons.OUTRO}
                           <span className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
-                            {academicEventTypes[evento.tipo]?.nome || 'Evento'}
+                            {mergedEventTypes[evento.tipo]?.nome || 'Evento'}
                           </span>
                         </div>
                         <p className="font-semibold text-slate-900">{evento.titulo}</p>
@@ -228,9 +300,14 @@ function CalendarioAcademico({ materias, onClose }) {
                           {evento.horario ? ` às ${evento.horario}` : ''}
                           {evento.materia ? ` • ${evento.materia}` : ''}
                         </p>
-                        {evento.descricao && (
+                        {evento.source === 'materia' ? (
+                          <p className="mt-2 text-xs font-medium uppercase tracking-[0.18em] text-emerald-600">
+                            Sincronizado com a matéria
+                          </p>
+                        ) : null}
+                        {evento.descricao && evento.descricao !== evento.titulo ? (
                           <p className="mt-2 text-sm leading-6 text-slate-500">{evento.descricao}</p>
-                        )}
+                        ) : null}
                       </div>
                     ))
                   )}
@@ -240,15 +317,15 @@ function CalendarioAcademico({ materias, onClose }) {
               <div className="rounded-[1.75rem] border border-slate-100 bg-white p-4 shadow-soft">
                 <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">Legenda</p>
                 <div className="mt-3 rounded-2xl bg-slate-50 px-4 py-3 text-sm leading-6 text-slate-600">
-                  A cor do dia mostra o evento mais importante daquele dia. Os pontos abaixo do numero mostram ate
+                  A cor do dia mostra o evento mais importante daquele dia. Os pontos abaixo do número mostram até
                   3 tipos de evento no mesmo dia.
                 </div>
                 <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                  {Object.entries(academicEventTypes).map(([key, type]) => (
+                  {Object.entries(mergedEventTypes).map(([key, type]) => (
                     <div key={key} className="flex items-center gap-3 rounded-2xl bg-slate-50 p-3">
                       <div className="flex items-center gap-3">
                         <span className={`h-3 w-3 rounded-full ${type.dotColor || 'bg-slate-300'}`} />
-                        <div>{eventIcons[key]}</div>
+                        <div>{eventIcons[key] || eventIcons.OUTRO}</div>
                       </div>
                       <span className="text-sm font-medium text-slate-700">{type.nome}</span>
                     </div>
@@ -261,7 +338,7 @@ function CalendarioAcademico({ materias, onClose }) {
                 <div className="mt-4 space-y-3">
                   {proximosMarcos.map((evento) => (
                     <div key={evento.id} className="flex items-start gap-3 rounded-2xl bg-slate-50 p-3">
-                      <div className="mt-0.5">{eventIcons[evento.tipo]}</div>
+                      <div className="mt-0.5">{eventIcons[evento.tipo] || eventIcons.OUTRO}</div>
                       <div className="min-w-0">
                         <p className="text-sm font-semibold text-slate-900">{evento.titulo}</p>
                         <p className="text-sm text-slate-600">{formatLocalDateLabel(evento.data)}</p>
@@ -300,7 +377,7 @@ function CalendarioAcademico({ materias, onClose }) {
             onChange={(event) => setNovoEvento((current) => ({ ...current, tipo: event.target.value }))}
             className="w-full rounded-xl border border-slate-200 px-3 py-3 text-sm"
           >
-            {Object.entries(academicEventTypes).map(([key, type]) => (
+            {Object.entries(mergedEventTypes).map(([key, type]) => (
               <option key={key} value={key}>
                 {type.nome}
               </option>
@@ -315,13 +392,16 @@ function CalendarioAcademico({ materias, onClose }) {
             onChange={(event) => setNovoEvento((current) => ({ ...current, materia: event.target.value }))}
             className="w-full rounded-xl border border-slate-200 px-3 py-3 text-sm"
           >
-            <option value="">Selecione uma matéria</option>
-            {materias.map((materia, index) => (
+            <option value="">Evento geral do semestre</option>
+            {(materias || []).map((materia, index) => (
               <option key={`${materia.nome}-${index}`} value={materia.nome}>
                 {materia.nome}
               </option>
             ))}
           </select>
+          <p className="mt-2 text-xs leading-5 text-slate-500">
+            Se você escolher uma matéria, o evento também entra no calendário de compromissos dela.
+          </p>
         </div>
 
         <div className="grid grid-cols-2 gap-3">

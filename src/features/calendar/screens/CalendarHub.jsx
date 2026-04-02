@@ -1,22 +1,16 @@
 import React from 'react';
-import { FaCalendarAlt, FaClipboardCheck, FaArrowRight } from 'react-icons/fa';
+import { FaCalendarAlt, FaArrowRight } from 'react-icons/fa';
 
-function CalendarHub({ proximasAvaliacoes, onOpenAcademicCalendar, onOpenEvaluationsCalendar, onSyncCalendar }) {
+function CalendarHub({ proximasAvaliacoes, onOpenCalendar, onSyncCalendar }) {
   return (
     <section className="space-y-5">
       <div className="card overflow-x-auto p-3">
         <div className="flex min-w-max gap-3">
           <button
             className="rounded-full bg-slate-950 px-4 py-2 text-sm font-semibold text-white"
-            onClick={onOpenAcademicCalendar}
+            onClick={onOpenCalendar}
           >
-            Abrir calendário
-          </button>
-          <button
-            className="rounded-full bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-soft"
-            onClick={onOpenEvaluationsCalendar}
-          >
-            Provas e trabalhos
+            Abrir calendário geral
           </button>
           <button
             className="rounded-full bg-slate-100 px-4 py-2 text-sm font-semibold text-slate-700"
@@ -27,35 +21,27 @@ function CalendarHub({ proximasAvaliacoes, onOpenAcademicCalendar, onOpenEvaluat
         </div>
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
-        <button className="card text-left p-5 transition-transform hover:-translate-y-0.5" onClick={onOpenAcademicCalendar}>
+      <div className="grid gap-4">
+        <button className="card p-5 text-left transition-transform hover:-translate-y-0.5" onClick={onOpenCalendar}>
           <FaCalendarAlt className="mb-4 text-xl text-sky-700" />
-          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-sky-700">Planejamento</p>
-          <h2 className="mt-3 font-display text-2xl font-bold text-slate-950">Calendário acadêmico</h2>
-          <p className="mt-2 text-sm leading-6 text-slate-600">Aulas, feriados, provas e compromissos no mesmo lugar.</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-sky-700">Agenda</p>
+          <h2 className="mt-3 font-display text-2xl font-bold text-slate-950">Calendário geral</h2>
+          <p className="mt-2 text-sm leading-6 text-slate-600">
+            Calendário acadêmico, provas, trabalhos, entregas e compromissos das matérias no mesmo lugar.
+          </p>
           <span className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-sky-700">
-            Abrir calendario <FaArrowRight />
-          </span>
-        </button>
-
-        <button className="card text-left p-5 transition-transform hover:-translate-y-0.5" onClick={onOpenEvaluationsCalendar}>
-          <FaClipboardCheck className="mb-4 text-xl text-sky-700" />
-          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-sky-700">Avaliações</p>
-          <h2 className="mt-3 font-display text-2xl font-bold text-slate-950">Provas e entregas</h2>
-          <p className="mt-2 text-sm leading-6 text-slate-600">Veja rápido o que está chegando e organize a semana.</p>
-          <span className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-sky-700">
-            Ver agenda <FaArrowRight />
+            Abrir calendário <FaArrowRight />
           </span>
         </button>
       </div>
 
       <div className="card p-6">
         <p className="mb-2 text-xs font-semibold uppercase tracking-[0.24em] text-sky-700">
-          Proximas avaliacoes
+          Próximas avaliações
         </p>
         {proximasAvaliacoes.length === 0 ? (
           <p className="text-sm leading-6 text-slate-600">
-            Nenhuma avaliacao futura cadastrada. Use a agenda para adicionar provas e trabalhos.
+            Nenhuma avaliação futura cadastrada. Use o calendário geral para adicionar provas, entregas e compromissos.
           </p>
         ) : (
           <div className="space-y-3">
@@ -71,7 +57,7 @@ function CalendarHub({ proximasAvaliacoes, onOpenAcademicCalendar, onOpenEvaluat
                   </p>
                 </div>
                 <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-slate-700">
-                  {avaliacao.descricao || 'Sem descricao'}
+                  {avaliacao.descricao || 'Sem descrição'}
                 </span>
               </div>
             ))}
