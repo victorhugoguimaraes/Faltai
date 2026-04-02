@@ -15,8 +15,7 @@ const {
   querySnapshotDisciplineByCode,
   querySnapshotSummaries,
   querySnapshot,
-  refreshSnapshot,
-  shouldRefreshSnapshot
+  refreshSnapshot
 } = require('./unb/snapshotStore');
 const {
   loadSubscriptions,
@@ -50,7 +49,8 @@ webPush.setVapidDetails(vapidKeys.subject, vapidKeys.publicKey, vapidKeys.privat
 
 const snapshotState = {
   snapshots: new Map(),
-  refreshLocks: new Map()
+  refreshLocks: new Map(),
+  warmupPromise: null
 };
 
 const defaultSemester = getDefaultSemester();
@@ -74,20 +74,13 @@ const getRequestSemester = (req) => ({
   period: String(req.query.period || req.body?.period || defaultSemester.period)
 });
 
-const getSnapshotFromMemoryOrDisk = ({ year, period }) => {
+const getSnapshotFromMemory = ({ year, period }) => {
   const key = getSemesterKey(year, period);
 
   if (snapshotState.snapshots.has(key)) {
     return snapshotState.snapshots.get(key);
   }
-
-  const snapshot = loadSnapshot(year, period);
-
-  if (snapshot) {
-    snapshotState.snapshots.set(key, snapshot);
-  }
-
-  return snapshot;
+  return null;
 };
 
 const refreshSnapshotWithLock = async ({ year, period }) => {
@@ -110,14 +103,37 @@ const refreshSnapshotWithLock = async ({ year, period }) => {
   return refreshPromise;
 };
 
-const warmSnapshotInMemory = ({ year, period }) => {
-  const snapshot = getSnapshotFromMemoryOrDisk({ year, period });
+const warmSnapshotInMemory = async ({ year, period }) => {
+  const key = getSemesterKey(year, period);
 
-  if (!snapshot) {
-    refreshSnapshotWithLock({ year, period }).catch((error) => {
-      console.error(`Erro ao aquecer snapshot ${year}/${period}:`, error.message);
+  if (snapshotState.snapshots.has(key)) {
+    return snapshotState.snapshots.get(key);
+  }
+
+  const snapshot = await loadSnapshot(year, period);
+
+  if (snapshot) {
+    snapshotState.snapshots.set(key, snapshot);
+    return snapshot;
+  }
+
+  return refreshSnapshotWithLock({ year, period });
+};
+
+const ensureWarmSnapshot = async ({ year, period }) => {
+  const key = getSemesterKey(year, period);
+
+  if (snapshotState.snapshots.has(key)) {
+    return snapshotState.snapshots.get(key);
+  }
+
+  if (!snapshotState.warmupPromise) {
+    snapshotState.warmupPromise = warmSnapshotInMemory({ year, period }).finally(() => {
+      snapshotState.warmupPromise = null;
     });
   }
+
+  return snapshotState.warmupPromise;
 };
 
 const isLoopbackRequest = (req) => {
@@ -334,15 +350,14 @@ app.post('/api/push/test', async (req, res) => {
 app.get('/api/unb/departamentos', async (_req, res) => {
   try {
     const semester = getRequestSemester(_req);
-    const snapshot = getSnapshotFromMemoryOrDisk(semester);
+    const snapshot = await ensureWarmSnapshot(semester);
 
     if (snapshot?.departments?.length) {
       res.json({
         departments: snapshot.departments,
         cached: true,
         source: 'snapshot',
-        semester,
-        stale: shouldRefreshSnapshot(snapshot)
+        semester
       });
       return;
     }
@@ -371,7 +386,7 @@ app.get('/api/unb/departamentos', async (_req, res) => {
 
 app.get('/api/unb/snapshot/status', (req, res) => {
   const semester = getRequestSemester(req);
-  const snapshot = getSnapshotFromMemoryOrDisk(semester);
+  const snapshot = getSnapshotFromMemory(semester);
 
   if (!snapshot) {
     res.json({
@@ -431,7 +446,7 @@ app.get('/api/unb/turmas', async (req, res) => {
     }
 
     const semester = { year, period };
-    const snapshot = getSnapshotFromMemoryOrDisk(semester);
+    const snapshot = await ensureWarmSnapshot(semester);
 
     if (snapshot) {
       const disciplines = querySnapshotSummaries(snapshot, { department, query });
@@ -441,8 +456,7 @@ app.get('/api/unb/turmas', async (req, res) => {
         cached: true,
         queryCached: true,
         source: 'snapshot',
-        semester,
-        stale: shouldRefreshSnapshot(snapshot)
+        semester
       });
       return;
     }
@@ -493,7 +507,7 @@ app.get('/api/unb/disciplina', async (req, res) => {
     }
 
     const semester = { year, period };
-    const snapshot = getSnapshotFromMemoryOrDisk(semester);
+    const snapshot = await ensureWarmSnapshot(semester);
 
     if (snapshot) {
       const discipline = querySnapshotDisciplineByCode(snapshot, { department, code });
@@ -507,8 +521,7 @@ app.get('/api/unb/disciplina', async (req, res) => {
         discipline,
         cached: true,
         source: 'snapshot',
-        semester,
-        stale: shouldRefreshSnapshot(snapshot)
+        semester
       });
       return;
     }
@@ -541,10 +554,14 @@ setInterval(() => {
   });
 }, PUSH_DISPATCH_INTERVAL);
 
-warmSnapshotInMemory(defaultSemester);
-
-app.listen(port, host, () => {
-  console.log(`UnB API disponivel em http://${host}:${port}`);
-});
+ensureWarmSnapshot(defaultSemester)
+  .catch((error) => {
+    console.error(`Erro ao preparar snapshot ${defaultSemester.year}/${defaultSemester.period}:`, error.message);
+  })
+  .finally(() => {
+    app.listen(port, host, () => {
+      console.log(`UnB API disponivel em http://${host}:${port}`);
+    });
+  });
 
 module.exports = app;

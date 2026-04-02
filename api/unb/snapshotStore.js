@@ -10,37 +10,44 @@ const {
 } = require('./sigaa');
 
 const SNAPSHOT_DIR = path.join(__dirname, '..', 'data', 'snapshots');
-const REFRESH_INTERVAL_MS = 7 * 24 * 60 * 60 * 1000;
 
 function ensureSnapshotDir() {
-  fs.mkdirSync(SNAPSHOT_DIR, { recursive: true });
+  if (!fs.existsSync(SNAPSHOT_DIR)) {
+    fs.mkdirSync(SNAPSHOT_DIR, { recursive: true });
+  }
 }
 
-function buildDepartmentStats(disciplinesByDepartment = {}, totalDepartments = 0) {
-  const values = Object.values(disciplinesByDepartment);
-  const activeDepartments = values.filter((disciplines) => disciplines.length > 0).length;
-  const totalDisciplines = values.reduce((sum, disciplines) => sum + disciplines.length, 0);
-  const totalClasses = values.reduce(
-    (sum, disciplines) =>
-      sum +
-      disciplines.reduce((innerSum, discipline) => innerSum + (discipline.classes?.length || 0), 0),
-    0
-  );
-
+function getDefaultSemester() {
+  const now = new Date();
   return {
-    totalDepartments,
-    activeDepartments,
-    totalDisciplines,
-    totalClasses
+    year: String(process.env.UNB_SNAPSHOT_YEAR || now.getFullYear()),
+    period: String(process.env.UNB_SNAPSHOT_PERIOD || '1')
   };
+}
+
+function getSemesterKey(year, period) {
+  return `${year}-${period}`;
+}
+
+function getSnapshotPath(year, period) {
+  ensureSnapshotDir();
+  return path.join(SNAPSHOT_DIR, `snapshot-${year}-${period}.json`);
+}
+
+function compareDisciplines(left, right) {
+  return `${left.code || ''} ${left.name || ''}`.localeCompare(`${right.code || ''} ${right.name || ''}`);
 }
 
 function compareClasses(left, right) {
   return String(left.classCode || '').localeCompare(String(right.classCode || ''));
 }
 
-function compareDisciplines(left, right) {
-  return `${left.code || ''} ${left.name || ''}`.localeCompare(`${right.code || ''} ${right.name || ''}`);
+function summarizeDiscipline(discipline) {
+  return {
+    code: discipline.code,
+    name: discipline.name,
+    classCount: discipline.classes?.length || 0
+  };
 }
 
 function prepareClass(discipline, turma) {
@@ -66,80 +73,113 @@ function prepareClass(discipline, turma) {
 }
 
 function prepareDiscipline(discipline) {
-  const classes = [...(discipline.classes || [])].sort(compareClasses);
+  const sortedClasses = [...(discipline.classes || [])].sort(compareClasses);
   const preparedDiscipline = {
     ...discipline,
-    classes,
+    classes: sortedClasses,
     _disciplineSearch: normalizeForSearch(`${discipline.code} ${discipline.name}`),
     _sortKey: `${discipline.code || ''} ${discipline.name || ''}`
   };
 
-  preparedDiscipline.classes = classes.map((turma) => prepareClass(preparedDiscipline, turma));
+  preparedDiscipline.classes = sortedClasses.map((turma) => prepareClass(preparedDiscipline, turma));
   return preparedDiscipline;
 }
 
+function buildStats(departments, disciplinesByDepartment) {
+  let activeDepartments = 0;
+  let totalDisciplines = 0;
+  let totalClasses = 0;
+
+  for (const departmentId of Object.keys(disciplinesByDepartment)) {
+    const disciplines = disciplinesByDepartment[departmentId];
+
+    if (disciplines.length > 0) {
+      activeDepartments += 1;
+    }
+
+    totalDisciplines += disciplines.length;
+
+    for (const discipline of disciplines) {
+      totalClasses += discipline.classes?.length || 0;
+    }
+  }
+
+  return {
+    totalDepartments: departments.length,
+    activeDepartments,
+    totalDisciplines,
+    totalClasses
+  };
+}
+
+function buildQueryIndexes(disciplinesByDepartment) {
+  const summariesByDepartment = {};
+  const codeIndexByDepartment = {};
+
+  for (const [departmentId, disciplines] of Object.entries(disciplinesByDepartment)) {
+    summariesByDepartment[departmentId] = disciplines.map(summarizeDiscipline);
+    codeIndexByDepartment[departmentId] = Object.fromEntries(
+      disciplines.map((discipline) => [String(discipline.code), discipline])
+    );
+  }
+
+  return {
+    summariesByDepartment,
+    codeIndexByDepartment
+  };
+}
+
 function prepareSnapshot(snapshot) {
-  const disciplinesByDepartment = Object.fromEntries(
-    Object.entries(snapshot.disciplinesByDepartment || {}).map(([departmentId, disciplines]) => [
-      departmentId,
-      [...disciplines].sort(compareDisciplines).map(prepareDiscipline)
-    ])
-  );
+  const disciplinesByDepartment = {};
+
+  for (const [departmentId, disciplines] of Object.entries(snapshot.disciplinesByDepartment || {})) {
+    disciplinesByDepartment[departmentId] = [...disciplines].sort(compareDisciplines).map(prepareDiscipline);
+  }
+
+  const stats = snapshot.stats || buildStats(snapshot.departments || [], disciplinesByDepartment);
+  const indexes = buildQueryIndexes(disciplinesByDepartment);
 
   return {
     ...snapshot,
     disciplinesByDepartment,
-    stats:
-      snapshot.stats ||
-      buildDepartmentStats(disciplinesByDepartment, snapshot.departments?.length || 0)
+    stats,
+    ...indexes
   };
 }
 
 function stripPreparedFields(snapshot) {
-  return {
-    ...snapshot,
-    disciplinesByDepartment: Object.fromEntries(
-      Object.entries(snapshot.disciplinesByDepartment || {}).map(([departmentId, disciplines]) => [
-        departmentId,
-        disciplines.map(({ _disciplineSearch, _sortKey, classes = [], ...discipline }) => ({
-          ...discipline,
-          classes: classes.map(
-            ({ _classSearch, _classroomSearch, _teacherSearch, ...turma }) => turma
-          )
-        }))
-      ])
-    )
-  };
-}
+  const cleanDepartments = {};
 
-function getSemesterKey(year, period) {
-  return `${year}-${period}`;
-}
-
-function getSnapshotPath(year, period) {
-  ensureSnapshotDir();
-  return path.join(SNAPSHOT_DIR, `snapshot-${year}-${period}.json`);
-}
-
-function getDefaultSemester() {
-  const now = new Date();
-  const defaultYear = String(process.env.UNB_SNAPSHOT_YEAR || now.getFullYear());
-  const defaultPeriod = String(process.env.UNB_SNAPSHOT_PERIOD || '1');
-
-  return {
-    year: defaultYear,
-    period: defaultPeriod
-  };
-}
-
-function loadSnapshot(year, period) {
-  const snapshotPath = getSnapshotPath(year, period);
-
-  if (!fs.existsSync(snapshotPath)) {
-    return null;
+  for (const [departmentId, disciplines] of Object.entries(snapshot.disciplinesByDepartment || {})) {
+    cleanDepartments[departmentId] = disciplines.map(({ _disciplineSearch, _sortKey, classes = [], ...discipline }) => ({
+      ...discipline,
+      classes: classes.map(({ _classSearch, _classroomSearch, _teacherSearch, ...turma }) => turma)
+    }));
   }
 
-  return prepareSnapshot(JSON.parse(fs.readFileSync(snapshotPath, 'utf8')));
+  return {
+    semester: snapshot.semester,
+    updatedAt: snapshot.updatedAt,
+    departments: snapshot.departments,
+    disciplinesByDepartment: cleanDepartments,
+    refresh: snapshot.refresh,
+    stats: snapshot.stats
+  };
+}
+
+async function loadSnapshot(year, period) {
+  const snapshotPath = getSnapshotPath(year, period);
+
+  try {
+    const raw = await fsAsync.readFile(snapshotPath, 'utf8');
+    return prepareSnapshot(JSON.parse(raw));
+  } catch (error) {
+    if (error.code === 'ENOENT') {
+      return null;
+    }
+
+    throw error;
+  }
 }
 
 async function saveSnapshot(snapshot) {
@@ -149,11 +189,7 @@ async function saveSnapshot(snapshot) {
 }
 
 function getSnapshotStats(snapshot) {
-  if (snapshot.stats) {
-    return snapshot.stats;
-  }
-
-  return buildDepartmentStats(snapshot.disciplinesByDepartment, snapshot.departments?.length || 0);
+  return snapshot.stats;
 }
 
 async function refreshSnapshot({
@@ -174,15 +210,14 @@ async function refreshSnapshot({
     const batchResults = await Promise.all(
       batch.map(async (department) => {
         try {
-          const disciplines = await searchTurmas({
-            department: department.id,
-            year: normalizedYear,
-            period: normalizedPeriod
-          });
           return {
             ok: true,
             departmentId: department.id,
-            disciplines
+            disciplines: await searchTurmas({
+              department: department.id,
+              year: normalizedYear,
+              period: normalizedPeriod
+            })
           };
         } catch (error) {
           return {
@@ -194,17 +229,16 @@ async function refreshSnapshot({
       })
     );
 
-    batchResults.forEach((result) => {
-      if (result.ok) {
-        disciplinesByDepartment[result.departmentId] = result.disciplines;
-      } else {
+    for (const result of batchResults) {
+      disciplinesByDepartment[result.departmentId] = result.ok ? result.disciplines : [];
+
+      if (!result.ok) {
         failures.push({
           departmentId: result.departmentId,
           error: result.error
         });
-        disciplinesByDepartment[result.departmentId] = [];
       }
-    });
+    }
   }
 
   const snapshot = prepareSnapshot({
@@ -227,50 +261,38 @@ async function refreshSnapshot({
 }
 
 function querySnapshot(snapshot, { department, query = '' }) {
-  const disciplines = snapshot?.disciplinesByDepartment?.[String(department)] || [];
+  const departmentId = String(department);
+  const disciplines = snapshot?.disciplinesByDepartment?.[departmentId] || [];
+
+  if (!query.trim()) {
+    return disciplines;
+  }
+
   return filterDisciplinesByQuery(disciplines, query);
 }
 
-function summarizeDiscipline(discipline) {
-  return {
-    code: discipline.code,
-    name: discipline.name,
-    classCount: discipline.classes?.length || 0
-  };
-}
-
 function querySnapshotSummaries(snapshot, { department, query = '' }) {
+  const departmentId = String(department);
+
+  if (!query.trim()) {
+    return snapshot?.summariesByDepartment?.[departmentId] || [];
+  }
+
   return querySnapshot(snapshot, { department, query }).map(summarizeDiscipline);
 }
 
 function querySnapshotDisciplineByCode(snapshot, { department, code }) {
-  const disciplines = snapshot?.disciplinesByDepartment?.[String(department)] || [];
-  return disciplines.find((discipline) => discipline.code === String(code)) || null;
-}
-
-function shouldRefreshSnapshot(snapshot) {
-  if (!snapshot?.updatedAt) {
-    return true;
-  }
-
-  const updatedAt = new Date(snapshot.updatedAt);
-  if (Number.isNaN(updatedAt.getTime())) {
-    return true;
-  }
-
-  return Date.now() - updatedAt.getTime() >= REFRESH_INTERVAL_MS;
+  return snapshot?.codeIndexByDepartment?.[String(department)]?.[String(code)] || null;
 }
 
 module.exports = {
-  REFRESH_INTERVAL_MS,
   getDefaultSemester,
   getSemesterKey,
   getSnapshotPath,
   getSnapshotStats,
   loadSnapshot,
+  querySnapshot,
   querySnapshotDisciplineByCode,
   querySnapshotSummaries,
-  querySnapshot,
-  refreshSnapshot,
-  shouldRefreshSnapshot
+  refreshSnapshot
 };
