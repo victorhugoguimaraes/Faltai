@@ -1,5 +1,11 @@
 import React, { useState } from 'react';
-import { FaArrowRight, FaGoogle, FaLock } from 'react-icons/fa';
+import {
+  FaArrowRight,
+  FaCalendarAlt,
+  FaGoogle,
+  FaLock,
+  FaRegClock
+} from 'react-icons/fa';
 import { useAuth } from '../contexts/AuthContext';
 import { useError } from '../contexts/ErrorContext';
 import BottomSheet from './layout/BottomSheet';
@@ -40,17 +46,29 @@ function LoginModal({ setLoginModalOpen }) {
       contentClassName="space-y-4 p-4 sm:p-6"
       mobileFullHeight
     >
-      <div className="rounded-[1.5rem] border border-slate-100 bg-slate-50 p-4">
-        <p className="text-sm leading-6 text-slate-600">
-          Use sua conta para sincronizar matérias, horários e compromissos entre dispositivos.
+      <div className="rounded-[1.75rem] border border-white/80 bg-slate-50/90 p-4 shadow-soft">
+        <p className="text-xs font-semibold uppercase tracking-[0.24em] text-emerald-800">Sincronização</p>
+        <p className="mt-2 text-sm leading-6 text-slate-600">
+          Use sua conta para manter matérias, horários e compromissos alinhados entre dispositivos.
         </p>
+
+        <div className="mt-4 grid gap-2 sm:grid-cols-2">
+          <div className="rounded-2xl bg-white px-3 py-3 text-sm text-slate-600">
+            <FaCalendarAlt className="mb-2 text-sky-700" />
+            Horários e eventos no mesmo estado.
+          </div>
+          <div className="rounded-2xl bg-white px-3 py-3 text-sm text-slate-600">
+            <FaRegClock className="mb-2 text-sky-700" />
+            Continue de onde parou sem reconfigurar.
+          </div>
+        </div>
       </div>
 
       <div className="space-y-3">
         <label className="block text-sm font-medium text-slate-700">Email</label>
         <input
           className="input-modern"
-          placeholder="Email"
+          placeholder="voce@exemplo.com"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
         />
@@ -61,23 +79,26 @@ function LoginModal({ setLoginModalOpen }) {
         <input
           className="input-modern"
           type="password"
-          placeholder="Senha"
+          placeholder="Sua senha"
           value={senha}
           onChange={(e) => setSenha(e.target.value)}
         />
       </div>
 
-      <div className="grid gap-3">
-        <button className="btn-primary w-full justify-center" onClick={handleLogin}>
+      <div className="grid gap-3 pt-1">
+        <button className="btn-primary flex w-full items-center justify-center gap-2 py-3.5 text-base" onClick={handleLogin}>
           <FaLock />
           Entrar
         </button>
-        <button className="btn-secondary w-full justify-center" onClick={handleGoogleLogin}>
+        <button
+          className="flex w-full items-center justify-center gap-2 rounded-2xl border border-sky-200 bg-white px-5 py-3.5 text-base font-semibold text-sky-700 shadow-soft transition-all duration-200 hover:-translate-y-0.5 hover:bg-sky-50"
+          onClick={handleGoogleLogin}
+        >
           <FaGoogle />
           Entrar com Google
         </button>
         <button
-          className="text-sm font-semibold text-slate-500 underline underline-offset-4"
+          className="text-sm font-semibold text-slate-500 transition-colors hover:text-slate-700"
           onClick={() => setLoginModalOpen(false)}
         >
           Cancelar
