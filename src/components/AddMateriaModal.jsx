@@ -13,7 +13,7 @@ import {
 import { useMaterias } from '../contexts/MateriasContext';
 import { useError } from '../contexts/ErrorContext';
 import { calculateMaxFaltas, sanitizeMateria, validateMateria } from '../utils/validation';
-import { fetchUnbClasses, fetchUnbDepartments } from '../features/schedule/lib/unbApi';
+import { fetchUnbClasses, fetchUnbDepartments, fetchUnbDiscipline } from '../features/schedule/lib/unbApi';
 import { createTurma, loadTurmas, mergeTurmas, saveTurmas } from '../features/schedule/lib/turmasStorage';
 
 const currentYear = new Date().getFullYear();
@@ -47,10 +47,12 @@ function AddMateriaModal({ setModalOpen }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [disciplineResults, setDisciplineResults] = useState([]);
   const [selectedDisciplineCode, setSelectedDisciplineCode] = useState('');
+  const [selectedDiscipline, setSelectedDiscipline] = useState(null);
   const [hasSearchedUnb, setHasSearchedUnb] = useState(false);
   const [unbHelpMessage, setUnbHelpMessage] = useState('');
   const searchRequestRef = useRef(0);
   const abortControllerRef = useRef(null);
+  const disciplineCacheRef = useRef(new Map());
 
   useEffect(() => {
     if (mode !== 'unb' || departments.length > 0) {
@@ -80,6 +82,7 @@ function AddMateriaModal({ setModalOpen }) {
       setLoadingTurmas(false);
       setDisciplineResults([]);
       setSelectedDisciplineCode('');
+      setSelectedDiscipline(null);
       setHasSearchedUnb(false);
       return;
     }
@@ -100,10 +103,6 @@ function AddMateriaModal({ setModalOpen }) {
   const selectedDepartmentName = useMemo(() => {
     return departments.find((department) => department.id === selectedDepartment)?.name || '';
   }, [departments, selectedDepartment]);
-
-  const selectedDiscipline = useMemo(() => {
-    return disciplineResults.find((discipline) => discipline.code === selectedDisciplineCode) || null;
-  }, [disciplineResults, selectedDisciplineCode]);
 
   const { selectedYear, selectedPeriod } = useMemo(() => {
     const [year = String(currentYear), period = '1'] = selectedTerm.split('-');
@@ -216,6 +215,7 @@ function AddMateriaModal({ setModalOpen }) {
       setLoadingTurmas(true);
       setHasSearchedUnb(true);
       setSelectedDisciplineCode('');
+      setSelectedDiscipline(null);
       setDisciplineResults([]);
       setUnbHelpMessage('');
 
@@ -234,6 +234,9 @@ function AddMateriaModal({ setModalOpen }) {
       setDisciplineResults(results);
 
       if (results.length === 1) {
+        disciplineCacheRef.current.delete(
+          `${selectedDepartment}:${selectedYear}:${selectedPeriod}:${results[0].code}`
+        );
         setSelectedDisciplineCode(results[0].code);
       }
     } catch (error) {
@@ -249,6 +252,56 @@ function AddMateriaModal({ setModalOpen }) {
       }
     }
   };
+
+  useEffect(() => {
+    if (!selectedDisciplineCode || !selectedDepartment) {
+      return;
+    }
+
+    const cacheKey = `${selectedDepartment}:${selectedYear}:${selectedPeriod}:${selectedDisciplineCode}`;
+    const cachedDiscipline = disciplineCacheRef.current.get(cacheKey);
+
+    if (cachedDiscipline) {
+      setSelectedDiscipline(cachedDiscipline);
+      return;
+    }
+
+    abortControllerRef.current?.abort();
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
+    const loadDiscipline = async () => {
+      try {
+        setLoadingTurmas(true);
+        setUnbHelpMessage('');
+        const discipline = await fetchUnbDiscipline({
+          department: selectedDepartment,
+          year: selectedYear,
+          period: selectedPeriod,
+          code: selectedDisciplineCode,
+          signal: controller.signal
+        });
+
+        disciplineCacheRef.current.set(cacheKey, discipline);
+        setSelectedDiscipline(discipline);
+      } catch (error) {
+        if (error.name === 'AbortError') {
+          return;
+        }
+
+        setSelectedDisciplineCode('');
+        setSelectedDiscipline(null);
+        setUnbHelpMessage(error.message || 'Nao foi possivel carregar as turmas dessa disciplina.');
+        addError(error.message || 'Nao foi possivel carregar as turmas dessa disciplina.');
+      } finally {
+        if (abortControllerRef.current === controller && !controller.signal.aborted) {
+          setLoadingTurmas(false);
+        }
+      }
+    };
+
+    loadDiscipline();
+  }, [selectedDepartment, selectedDisciplineCode, selectedPeriod, selectedYear, addError]);
 
   const importUnbClass = async (discipline, turma) => {
     try {
@@ -566,12 +619,19 @@ function AddMateriaModal({ setModalOpen }) {
                           : 'Nenhuma disciplina disponivel para essa unidade no semestre selecionado.'
                         : 'Escolha a unidade e comece a digitar para listar disciplinas.'}
                 </div>
+              ) : selectedDisciplineCode && !selectedDiscipline ? (
+                <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-5 text-sm text-slate-500">
+                  Carregando turmas da disciplina...
+                </div>
               ) : selectedDiscipline ? (
                 <div className="space-y-4">
                   <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
                     <button
                       type="button"
-                      onClick={() => setSelectedDisciplineCode('')}
+                      onClick={() => {
+                        setSelectedDisciplineCode('');
+                        setSelectedDiscipline(null);
+                      }}
                       className="inline-flex items-center gap-2 text-sm font-semibold text-slate-600 hover:text-slate-900"
                     >
                       <FaChevronLeft className="text-xs" />
@@ -650,8 +710,8 @@ function AddMateriaModal({ setModalOpen }) {
                       </p>
                       <h3 className="mt-1 text-lg font-semibold text-slate-900">{discipline.name}</h3>
                       <p className="mt-2 text-sm text-slate-600">
-                        {discipline.classes.length} turma{discipline.classes.length > 1 ? 's' : ''} encontrada
-                        {discipline.classes.length > 1 ? 's' : ''}
+                        {(discipline.classCount || 0)} turma{(discipline.classCount || 0) > 1 ? 's' : ''} encontrada
+                        {(discipline.classCount || 0) > 1 ? 's' : ''}
                       </p>
                     </div>
                     <button

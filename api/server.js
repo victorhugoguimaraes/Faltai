@@ -12,6 +12,8 @@ const {
   getSemesterKey,
   getSnapshotStats,
   loadSnapshot,
+  querySnapshotDisciplineByCode,
+  querySnapshotSummaries,
   querySnapshot,
   refreshSnapshot,
   shouldRefreshSnapshot
@@ -231,6 +233,7 @@ app.get('/', (_req, res) => {
       '/api/health',
       '/api/unb/departamentos',
       '/api/unb/turmas',
+      '/api/unb/disciplina',
       '/api/unb/snapshot/status',
       '/api/unb/snapshot/refresh',
       '/api/push/public-key',
@@ -439,7 +442,7 @@ app.get('/api/unb/turmas', async (req, res) => {
         ensureFreshSnapshotInBackground(semester);
       }
 
-      const disciplines = querySnapshot(snapshot, { department, query });
+      const disciplines = querySnapshotSummaries(snapshot, { department, query });
 
       res.json({
         disciplines,
@@ -475,6 +478,68 @@ app.get('/api/unb/turmas', async (req, res) => {
   } catch (error) {
     res.status(500).json({
       message: 'Nao foi possivel consultar as turmas da UnB.',
+      detail: error.message
+    });
+  }
+});
+
+app.get('/api/unb/disciplina', async (req, res) => {
+  try {
+    const department = String(req.query.department || '');
+    const { year, period } = getRequestSemester(req);
+    const code = String(req.query.code || '');
+
+    if (!department) {
+      res.status(400).json({ message: 'O parametro "department" e obrigatorio.' });
+      return;
+    }
+
+    if (!code) {
+      res.status(400).json({ message: 'O parametro "code" e obrigatorio.' });
+      return;
+    }
+
+    const semester = { year, period };
+    const snapshot = getSnapshotFromMemoryOrDisk(semester);
+
+    if (snapshot) {
+      if (shouldRefreshSnapshot(snapshot)) {
+        ensureFreshSnapshotInBackground(semester);
+      }
+
+      const discipline = querySnapshotDisciplineByCode(snapshot, { department, code });
+
+      if (!discipline) {
+        res.status(404).json({ message: 'Disciplina nao encontrada para esse departamento.' });
+        return;
+      }
+
+      res.json({
+        discipline,
+        cached: true,
+        source: 'snapshot',
+        semester
+      });
+      return;
+    }
+
+    const disciplines = await searchTurmas({ department, year, period });
+    const discipline = disciplines.find((item) => item.code === code);
+
+    if (!discipline) {
+      res.status(404).json({ message: 'Disciplina nao encontrada para esse departamento.' });
+      return;
+    }
+
+    res.json({
+      discipline,
+      cached: false,
+      source: 'sigaa',
+      semester
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: 'Nao foi possivel consultar a disciplina da UnB.',
       detail: error.message
     });
   }

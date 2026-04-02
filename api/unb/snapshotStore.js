@@ -231,6 +231,23 @@ function querySnapshot(snapshot, { department, query = '' }) {
   return filterDisciplinesByQuery(disciplines, query);
 }
 
+function summarizeDiscipline(discipline) {
+  return {
+    code: discipline.code,
+    name: discipline.name,
+    classCount: discipline.classes?.length || 0
+  };
+}
+
+function querySnapshotSummaries(snapshot, { department, query = '' }) {
+  return querySnapshot(snapshot, { department, query }).map(summarizeDiscipline);
+}
+
+function querySnapshotDisciplineByCode(snapshot, { department, code }) {
+  const disciplines = snapshot?.disciplinesByDepartment?.[String(department)] || [];
+  return disciplines.find((discipline) => discipline.code === String(code)) || null;
+}
+
 function shouldRefreshSnapshot(snapshot) {
   if (!snapshot?.updatedAt) {
     return true;
@@ -251,6 +268,8 @@ module.exports = {
   getSnapshotPath,
   getSnapshotStats,
   loadSnapshot,
+  querySnapshotDisciplineByCode,
+  querySnapshotSummaries,
   querySnapshot,
   refreshSnapshot,
   shouldRefreshSnapshot

@@ -44,3 +44,15 @@ export const fetchUnbClasses = async ({ department, year, period, query, signal 
   const data = await requestJson(`/api/unb/turmas?${params.toString()}`, { signal });
   return data.disciplines || [];
 };
+
+export const fetchUnbDiscipline = async ({ department, year, period, code, signal }) => {
+  const params = new URLSearchParams({
+    department: String(department),
+    year: String(year),
+    period: String(period),
+    code: String(code)
+  });
+
+  const data = await requestJson(`/api/unb/disciplina?${params.toString()}`, { signal });
+  return data.discipline || null;
+};
