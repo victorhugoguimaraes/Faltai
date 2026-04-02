@@ -8,6 +8,15 @@ const {
   filterDisciplinesByQuery
 } = require('./unb/sigaa');
 const {
+  getDefaultSemester,
+  getSemesterKey,
+  getSnapshotStats,
+  loadSnapshot,
+  querySnapshot,
+  refreshSnapshot,
+  shouldRefreshSnapshot
+} = require('./unb/snapshotStore');
+const {
   loadSubscriptions,
   removeSubscription,
   resolveVapidKeys,
@@ -33,9 +42,17 @@ const cache = {
 const DEPARTMENTS_TTL = 1000 * 60 * 60 * 6;
 const SEARCH_TTL = 1000 * 60 * 30;
 const PUSH_DISPATCH_INTERVAL = 1000 * 60 * 10;
+const SNAPSHOT_MAINTENANCE_INTERVAL = 12 * 60 * 60 * 1000;
 
 const vapidKeys = resolveVapidKeys();
 webPush.setVapidDetails(vapidKeys.subject, vapidKeys.publicKey, vapidKeys.privateKey);
+
+const snapshotState = {
+  snapshots: new Map(),
+  refreshLocks: new Map()
+};
+
+const defaultSemester = getDefaultSemester();
 
 app.use(
   cors({
@@ -50,6 +67,72 @@ app.use(
   })
 );
 app.use(express.json());
+
+const getRequestSemester = (req) => ({
+  year: String(req.query.year || req.body?.year || defaultSemester.year),
+  period: String(req.query.period || req.body?.period || defaultSemester.period)
+});
+
+const getSnapshotFromMemoryOrDisk = ({ year, period }) => {
+  const key = getSemesterKey(year, period);
+
+  if (snapshotState.snapshots.has(key)) {
+    return snapshotState.snapshots.get(key);
+  }
+
+  const snapshot = loadSnapshot(year, period);
+
+  if (snapshot) {
+    snapshotState.snapshots.set(key, snapshot);
+  }
+
+  return snapshot;
+};
+
+const refreshSnapshotWithLock = async ({ year, period }) => {
+  const key = getSemesterKey(year, period);
+
+  if (snapshotState.refreshLocks.has(key)) {
+    return snapshotState.refreshLocks.get(key);
+  }
+
+  const refreshPromise = refreshSnapshot({ year, period })
+    .then((snapshot) => {
+      snapshotState.snapshots.set(key, snapshot);
+      return snapshot;
+    })
+    .finally(() => {
+      snapshotState.refreshLocks.delete(key);
+    });
+
+  snapshotState.refreshLocks.set(key, refreshPromise);
+  return refreshPromise;
+};
+
+const ensureFreshSnapshotInBackground = ({ year, period }) => {
+  const snapshot = getSnapshotFromMemoryOrDisk({ year, period });
+
+  if (!snapshot || shouldRefreshSnapshot(snapshot)) {
+    refreshSnapshotWithLock({ year, period }).catch((error) => {
+      console.error(`Erro ao atualizar snapshot ${year}/${period}:`, error.message);
+    });
+  }
+};
+
+const isLoopbackRequest = (req) => {
+  const remoteAddress = String(req.ip || req.socket?.remoteAddress || '');
+  return remoteAddress.includes('127.0.0.1') || remoteAddress.includes('::1');
+};
+
+const canRefreshSnapshot = (req) => {
+  const adminKey = process.env.UNB_SNAPSHOT_ADMIN_KEY;
+
+  if (adminKey) {
+    return req.get('x-snapshot-admin-key') === adminKey;
+  }
+
+  return isLoopbackRequest(req);
+};
 
 const parseWeeklyReminderDate = (settings = {}, now = new Date()) => {
   const reminderDay = Number(settings.weeklyReminderDay ?? 6);
@@ -148,6 +231,8 @@ app.get('/', (_req, res) => {
       '/api/health',
       '/api/unb/departamentos',
       '/api/unb/turmas',
+      '/api/unb/snapshot/status',
+      '/api/unb/snapshot/refresh',
       '/api/push/public-key',
       '/api/push/subscribe',
       '/api/push/settings',
@@ -246,6 +331,23 @@ app.post('/api/push/test', async (req, res) => {
 
 app.get('/api/unb/departamentos', async (_req, res) => {
   try {
+    const semester = getRequestSemester(_req);
+    const snapshot = getSnapshotFromMemoryOrDisk(semester);
+
+    if (snapshot?.departments?.length) {
+      if (shouldRefreshSnapshot(snapshot)) {
+        ensureFreshSnapshotInBackground(semester);
+      }
+
+      res.json({
+        departments: snapshot.departments,
+        cached: true,
+        source: 'snapshot',
+        semester
+      });
+      return;
+    }
+
     const now = Date.now();
 
     if (cache.departments && now - cache.departmentsAt < DEPARTMENTS_TTL) {
@@ -268,15 +370,84 @@ app.get('/api/unb/departamentos', async (_req, res) => {
   }
 });
 
+app.get('/api/unb/snapshot/status', (req, res) => {
+  const semester = getRequestSemester(req);
+  const snapshot = getSnapshotFromMemoryOrDisk(semester);
+
+  if (!snapshot) {
+    res.json({
+      ok: true,
+      available: false,
+      semester
+    });
+    return;
+  }
+
+  res.json({
+    ok: true,
+    available: true,
+    semester,
+    updatedAt: snapshot.updatedAt,
+    refresh: snapshot.refresh,
+    stats: getSnapshotStats(snapshot)
+  });
+});
+
+app.post('/api/unb/snapshot/refresh', async (req, res) => {
+  if (!canRefreshSnapshot(req)) {
+    res.status(403).json({
+      message: 'Refresh manual do snapshot nao autorizado.'
+    });
+    return;
+  }
+
+  try {
+    const semester = getRequestSemester(req);
+    const snapshot = await refreshSnapshotWithLock(semester);
+
+    res.json({
+      ok: true,
+      semester,
+      updatedAt: snapshot.updatedAt,
+      stats: getSnapshotStats(snapshot),
+      refresh: snapshot.refresh
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: 'Nao foi possivel atualizar o snapshot do semestre.',
+      detail: error.message
+    });
+  }
+});
+
 app.get('/api/unb/turmas', async (req, res) => {
   try {
     const department = String(req.query.department || '');
-    const year = String(req.query.year || new Date().getFullYear());
-    const period = String(req.query.period || '1');
+    const { year, period } = getRequestSemester(req);
     const query = String(req.query.query || '');
 
     if (!department) {
       res.status(400).json({ message: 'O parametro "department" e obrigatorio.' });
+      return;
+    }
+
+    const semester = { year, period };
+    const snapshot = getSnapshotFromMemoryOrDisk(semester);
+
+    if (snapshot) {
+      if (shouldRefreshSnapshot(snapshot)) {
+        ensureFreshSnapshotInBackground(semester);
+      }
+
+      const disciplines = querySnapshot(snapshot, { department, query });
+
+      res.json({
+        disciplines,
+        cached: true,
+        queryCached: true,
+        source: 'snapshot',
+        semester
+      });
       return;
     }
 
@@ -314,6 +485,12 @@ setInterval(() => {
     console.error('Erro ao despachar lembretes semanais:', error.message);
   });
 }, PUSH_DISPATCH_INTERVAL);
+
+ensureFreshSnapshotInBackground(defaultSemester);
+
+setInterval(() => {
+  ensureFreshSnapshotInBackground(defaultSemester);
+}, SNAPSHOT_MAINTENANCE_INTERVAL);
 
 app.listen(port, host, () => {
   console.log(`UnB API disponivel em http://${host}:${port}`);
