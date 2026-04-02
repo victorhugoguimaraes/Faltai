@@ -84,8 +84,28 @@ const toFirestorePayload = (materia) => {
 
 export const getMateriasStorageScope = (user) => (user?.uid ? user.uid : STORAGE_SCOPE_OFFLINE);
 
+const getLegacyMaterias = () => getStorageValue(storageKeys.materias, []);
+
+const migrateLegacyLocalMaterias = (scope) => {
+  const scopedKey = buildStorageKey(storageKeys.materias, scope);
+  const scopedMaterias = getStorageValue(scopedKey, null);
+
+  if (Array.isArray(scopedMaterias)) {
+    return scopedMaterias;
+  }
+
+  const legacyMaterias = getLegacyMaterias();
+
+  if (!Array.isArray(legacyMaterias) || legacyMaterias.length === 0) {
+    return [];
+  }
+
+  setStorageValue(scopedKey, legacyMaterias);
+  return legacyMaterias;
+};
+
 export const loadLocalMaterias = (scope) =>
-  normalizeMateriaList(getStorageValue(buildStorageKey(storageKeys.materias, scope), []));
+  normalizeMateriaList(migrateLegacyLocalMaterias(scope));
 
 export const saveLocalMaterias = (scope, materias) =>
   setStorageValue(buildStorageKey(storageKeys.materias, scope), normalizeMateriaList(materias));
