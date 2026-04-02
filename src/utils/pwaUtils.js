@@ -2,10 +2,52 @@ import { getPublicAssetPath } from './assets';
 
 let deferredPrompt = null;
 const installPromptListeners = new Set();
+let refreshingServiceWorker = false;
 
 const notifyInstallPromptListeners = () => {
   const available = Boolean(deferredPrompt);
   installPromptListeners.forEach((listener) => listener(available));
+};
+
+const triggerServiceWorkerRefresh = () => {
+  if (refreshingServiceWorker) {
+    return;
+  }
+
+  refreshingServiceWorker = true;
+  window.location.reload();
+};
+
+const wireServiceWorkerRegistration = (registration) => {
+  if (!registration) {
+    return;
+  }
+
+  navigator.serviceWorker.addEventListener('controllerchange', triggerServiceWorkerRefresh);
+
+  const activateWaitingWorker = () => {
+    if (registration.waiting) {
+      registration.waiting.postMessage({ type: 'SKIP_WAITING' });
+    }
+  };
+
+  if (registration.waiting) {
+    activateWaitingWorker();
+  }
+
+  registration.addEventListener('updatefound', () => {
+    const installingWorker = registration.installing;
+
+    if (!installingWorker) {
+      return;
+    }
+
+    installingWorker.addEventListener('statechange', () => {
+      if (installingWorker.state === 'installed' && navigator.serviceWorker.controller) {
+        activateWaitingWorker();
+      }
+    });
+  });
 };
 
 export const registerServiceWorker = () => {
@@ -16,6 +58,8 @@ export const registerServiceWorker = () => {
         .register(swPath)
         .then((registration) => {
           console.log('Service Worker registrado com sucesso:', registration.scope);
+          wireServiceWorkerRegistration(registration);
+          registration.update().catch(() => {});
         })
         .catch((error) => {
           console.log('Falha ao registrar Service Worker:', error);
