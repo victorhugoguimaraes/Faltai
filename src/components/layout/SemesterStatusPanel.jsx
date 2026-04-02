@@ -161,7 +161,7 @@ function SemesterStatusPanel({
             }`}
           >
             <FaClipboardList />
-            <span className="text-sm font-semibold">Executar nas materias</span>
+            <span className="text-sm font-semibold">Abrir materias</span>
           </button>
 
           <button
