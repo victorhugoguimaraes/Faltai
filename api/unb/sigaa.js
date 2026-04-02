@@ -4,6 +4,7 @@ const { decodeSigaaSchedule } = require('./horarios');
 const SIGAA_PUBLIC_URL = 'https://sigaa.unb.br/sigaa/public/';
 const SIGAA_SEARCH_URL = 'https://sigaa.unb.br/sigaa/public/turmas/listar.jsf';
 const SIGAA_SEARCH_PAGE_URL = `${SIGAA_SEARCH_URL}?aba=p-ensino`;
+const SIGAA_TIMEOUT_MS = Number(process.env.UNB_SIGAA_TIMEOUT_MS || 20000);
 
 const headers = {
   'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
@@ -83,10 +84,27 @@ async function requestWithCookies(url, cookieJar, options = {}) {
     nextHeaders.Cookie = cookieHeader;
   }
 
-  const response = await fetch(url, {
-    ...options,
-    headers: nextHeaders
-  });
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), SIGAA_TIMEOUT_MS);
+
+  let response;
+
+  try {
+    response = await fetch(url, {
+      ...options,
+      headers: nextHeaders,
+      signal: controller.signal
+    });
+  } catch (error) {
+    if (error.name === 'AbortError') {
+      throw new Error(`Timeout ao consultar o SIGAA em ${SIGAA_TIMEOUT_MS}ms.`);
+    }
+
+    throw error;
+  } finally {
+    clearTimeout(timeoutId);
+  }
+
   updateCookieJar(cookieJar, response);
 
   return response;

@@ -205,8 +205,18 @@ async function refreshSnapshot({
   const disciplinesByDepartment = {};
   const failures = [];
 
+  console.log(
+    `[snapshot] refresh vai processar ${departments.length} departamentos com concorrencia ${concurrency}`
+  );
+
   for (let startIndex = 0; startIndex < departments.length; startIndex += concurrency) {
     const batch = departments.slice(startIndex, startIndex + concurrency);
+    const batchNumber = Math.floor(startIndex / concurrency) + 1;
+    const batchTotal = Math.ceil(departments.length / concurrency);
+
+    console.log(
+      `[snapshot] lote ${batchNumber}/${batchTotal} iniciado (${batch.map((department) => department.id).join(', ')})`
+    );
     const batchResults = await Promise.all(
       batch.map(async (department) => {
         try {
@@ -239,6 +249,10 @@ async function refreshSnapshot({
         });
       }
     }
+
+    const okCount = batchResults.filter((result) => result.ok).length;
+    const failCount = batchResults.length - okCount;
+    console.log(`[snapshot] lote ${batchNumber}/${batchTotal} concluido (${okCount} ok, ${failCount} falhas)`);
   }
 
   const snapshot = prepareSnapshot({
