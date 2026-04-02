@@ -34,6 +34,11 @@ function getSnapshotPath(year, period) {
   return path.join(SNAPSHOT_DIR, `snapshot-${year}-${period}.json`);
 }
 
+function shouldVerifyEmptyDepartment(department) {
+  const departmentName = String(department?.name || '');
+  return /^(FACULDADE|DEPARTAMENTO|INSTITUTO|CENTRO|CURSO)/i.test(departmentName);
+}
+
 function compareDisciplines(left, right) {
   return `${left.code || ''} ${left.name || ''}`.localeCompare(`${right.code || ''} ${right.name || ''}`);
 }
@@ -204,6 +209,8 @@ async function refreshSnapshot({
   const departments = parseDepartments(html);
   const disciplinesByDepartment = {};
   const failures = [];
+  const verifiedEmptyDepartments = [];
+  const recoveredDepartments = [];
 
   console.log(
     `[snapshot] refresh vai processar ${departments.length} departamentos com concorrencia ${concurrency}`
@@ -255,6 +262,50 @@ async function refreshSnapshot({
     console.log(`[snapshot] lote ${batchNumber}/${batchTotal} concluido (${okCount} ok, ${failCount} falhas)`);
   }
 
+  const suspiciousEmptyDepartments = departments.filter((department) =>
+    shouldVerifyEmptyDepartment(department) &&
+    !failures.some((failure) => failure.departmentId === department.id) &&
+    (disciplinesByDepartment[department.id] || []).length === 0
+  );
+
+  if (suspiciousEmptyDepartments.length > 0) {
+    console.log(
+      `[snapshot] verificando ${suspiciousEmptyDepartments.length} departamentos vazios suspeitos`
+    );
+  }
+
+  for (const department of suspiciousEmptyDepartments) {
+    try {
+      const retriedDisciplines = await searchTurmas({
+        department: department.id,
+        year: normalizedYear,
+        period: normalizedPeriod
+      });
+
+      verifiedEmptyDepartments.push(department.id);
+
+      if (retriedDisciplines.length > 0) {
+        disciplinesByDepartment[department.id] = retriedDisciplines;
+        recoveredDepartments.push({
+          departmentId: department.id,
+          disciplines: retriedDisciplines.length
+        });
+        console.log(
+          `[snapshot] departamento ${department.id} recuperado na verificacao (${retriedDisciplines.length} disciplinas)`
+        );
+      }
+    } catch (error) {
+      failures.push({
+        departmentId: department.id,
+        error: `verification: ${error.message}`
+      });
+      console.error(
+        `[snapshot] verificacao falhou para ${department.id}:`,
+        error.message
+      );
+    }
+  }
+
   const snapshot = prepareSnapshot({
     semester: {
       year: normalizedYear,
@@ -266,6 +317,8 @@ async function refreshSnapshot({
     refresh: {
       durationMs: Date.now() - startedAt,
       failures,
+      verifiedEmptyDepartments,
+      recoveredDepartments,
       source: 'sigaa'
     }
   });
