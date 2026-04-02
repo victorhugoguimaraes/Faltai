@@ -1,6 +1,6 @@
 /**
- * @fileoverview Contexto de Autenticação
- * Gerencia estado global do usuário, login/logout e sincronização Firebase
+ * @fileoverview Contexto de Autenticacao
+ * Gerencia estado global do usuario, login/logout e sincronizacao Firebase
  * Suporta modo online (Firebase) e offline (localStorage)
  */
 
@@ -18,11 +18,6 @@ import {
 
 const AuthContext = createContext();
 
-/**
- * Hook customizado para acessar o contexto de autenticação
- * @returns {Object} Contexto com user, loading, login, logout, etc
- * @throws {Error} Se usado fora do AuthProvider
- */
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {
@@ -34,13 +29,24 @@ export const useAuth = () => {
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [isOnline, setIsOnline] = useState(() => {
-    return getStorageValue(storageKeys.isOnline, false);
-  });
+  const [isOnline, setIsOnline] = useState(() => getStorageValue(storageKeys.isOnline, false));
 
   useEffect(() => {
     let unsubscribe = () => {};
     let active = true;
+
+    const applyResolvedState = ({ firebaseUser, nextIsOnline, userDocData = null }) => {
+      const nextState = resolveAuthState({
+        firebaseUser,
+        isOnline: nextIsOnline,
+        userDocData,
+        offlineUser: getStorageValue(storageKeys.offlineUser, null)
+      });
+
+      setUser(nextState.user);
+      setIsOnline(nextState.isOnline);
+      setStorageValue(storageKeys.isOnline, nextState.isOnline);
+    };
 
     const syncAuth = async () => {
       if (!isFirebaseConfigured) {
@@ -62,7 +68,7 @@ export const AuthProvider = ({ children }) => {
       }
 
       const result = await handleGoogleRedirect();
-      if (active && result && result.success) {
+      if (active && result?.success) {
         const session = persistOnlineSession(result.user);
         setUser(session.user);
         setIsOnline(session.isOnline);
@@ -76,29 +82,40 @@ export const AuthProvider = ({ children }) => {
         try {
           const storedOnlineState = getStorageValue(storageKeys.isOnline, false);
           const nextIsOnline = Boolean(firebaseUser) || storedOnlineState;
-          let userDocData = null;
 
           if (firebaseUser) {
-            const userDocRef = firestoreModule.doc(db, 'usuarios', firebaseUser.uid);
-            const userDoc = await firestoreModule.getDoc(userDocRef);
-            userDocData = userDoc.data();
+            applyResolvedState({ firebaseUser, nextIsOnline });
+
+            try {
+              const userDocRef = firestoreModule.doc(db, 'usuarios', firebaseUser.uid);
+              const userDoc = await firestoreModule.getDoc(userDocRef);
+              applyResolvedState({
+                firebaseUser,
+                nextIsOnline,
+                userDocData: userDoc.data() || null
+              });
+            } catch (firestoreError) {
+              console.warn('Nao foi possivel carregar o perfil remoto do usuario:', firestoreError);
+            }
+          } else {
+            applyResolvedState({
+              firebaseUser: null,
+              nextIsOnline
+            });
           }
-
-          const nextState = resolveAuthState({
-            firebaseUser,
-            isOnline: nextIsOnline,
-            userDocData,
-            offlineUser: getStorageValue(storageKeys.offlineUser, null)
-          });
-
-          setUser(nextState.user);
-          setIsOnline(nextState.isOnline);
-          setStorageValue(storageKeys.isOnline, nextState.isOnline);
         } catch (error) {
-          console.error('Erro ao carregar dados do usuário:', error);
-          setUser(null);
-          setIsOnline(false);
-          setStorageValue(storageKeys.isOnline, false);
+          console.error('Erro ao carregar dados do usuario:', error);
+
+          if (firebaseUser) {
+            applyResolvedState({
+              firebaseUser,
+              nextIsOnline: true
+            });
+          } else {
+            setUser(null);
+            setIsOnline(false);
+            setStorageValue(storageKeys.isOnline, false);
+          }
         } finally {
           if (active) {
             setLoading(false);
@@ -113,7 +130,7 @@ export const AuthProvider = ({ children }) => {
       active = false;
       unsubscribe();
     };
-  }, [isOnline]);
+  }, []);
 
   const login = async (email, password) => {
     const result = await loginWithEmail(email, password);
@@ -144,14 +161,18 @@ export const AuthProvider = ({ children }) => {
   const loginWithGoogleAuth = async () => {
     const result = await loginWithGoogle();
     if (result.success) {
-      const session = persistOnlineSession(result.user);
-      setUser(session.user);
-      setIsOnline(session.isOnline);
+      setLoginResultSession(result.user);
     }
     return result;
   };
 
-  const loginOffline = (userData = { displayName: 'Usuário Anônimo', isOffline: true }) => {
+  const setLoginResultSession = (nextUser) => {
+    const session = persistOnlineSession(nextUser);
+    setUser(session.user);
+    setIsOnline(session.isOnline);
+  };
+
+  const loginOffline = (userData = { displayName: 'Usuario Anonimo', isOffline: true }) => {
     const session = persistOfflineSession(userData);
     setUser(session.user);
     setIsOnline(session.isOnline);

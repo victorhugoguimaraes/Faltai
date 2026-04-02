@@ -3,6 +3,7 @@ import { getPublicAssetPath } from './assets';
 let deferredPrompt = null;
 const installPromptListeners = new Set();
 let refreshingServiceWorker = false;
+let serviceWorkerListenersAttached = false;
 
 const notifyInstallPromptListeners = () => {
   const available = Boolean(deferredPrompt);
@@ -19,11 +20,14 @@ const triggerServiceWorkerRefresh = () => {
 };
 
 const wireServiceWorkerRegistration = (registration) => {
-  if (!registration) {
+  if (!registration || typeof navigator === 'undefined' || !navigator.serviceWorker) {
     return;
   }
 
-  navigator.serviceWorker.addEventListener('controllerchange', triggerServiceWorkerRefresh);
+  if (!serviceWorkerListenersAttached) {
+    navigator.serviceWorker.addEventListener('controllerchange', triggerServiceWorkerRefresh);
+    serviceWorkerListenersAttached = true;
+  }
 
   const activateWaitingWorker = () => {
     if (registration.waiting) {
@@ -50,6 +54,30 @@ const wireServiceWorkerRegistration = (registration) => {
   });
 };
 
+const scheduleServiceWorkerUpdateChecks = (registration) => {
+  if (!registration) {
+    return () => {};
+  }
+
+  const updateRegistration = () => registration.update().catch(() => {});
+  const intervalId = window.setInterval(updateRegistration, 60 * 1000);
+  const handleVisibilityChange = () => {
+    if (document.visibilityState === 'visible') {
+      updateRegistration();
+    }
+  };
+  const handleFocus = () => updateRegistration();
+
+  document.addEventListener('visibilitychange', handleVisibilityChange);
+  window.addEventListener('focus', handleFocus);
+
+  return () => {
+    window.clearInterval(intervalId);
+    document.removeEventListener('visibilitychange', handleVisibilityChange);
+    window.removeEventListener('focus', handleFocus);
+  };
+};
+
 export const registerServiceWorker = () => {
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
@@ -60,6 +88,7 @@ export const registerServiceWorker = () => {
           console.log('Service Worker registrado com sucesso:', registration.scope);
           wireServiceWorkerRegistration(registration);
           registration.update().catch(() => {});
+          scheduleServiceWorkerUpdateChecks(registration);
         })
         .catch((error) => {
           console.log('Falha ao registrar Service Worker:', error);
