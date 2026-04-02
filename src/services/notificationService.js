@@ -207,8 +207,8 @@ class NotificationService {
     if ('Notification' in window && Notification.permission === 'granted') {
       const pushNotification = new Notification(notification.title, {
         body: notification.message,
-        icon: getPublicAssetPath('/icon-192.png'),
-        badge: getPublicAssetPath('/icon-192.png'),
+        icon: getPublicAssetPath('/icon-192-v2.png'),
+        badge: getPublicAssetPath('/icon-192-v2.png'),
         tag: notification.id,
         requireInteraction: true,
         silent: false,

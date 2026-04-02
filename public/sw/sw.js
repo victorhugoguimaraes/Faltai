@@ -1,4 +1,4 @@
-const CACHE_NAME = 'faltai-runtime-v2';
+const CACHE_NAME = 'faltai-runtime-v3';
 const SAME_ORIGIN_DESTINATIONS = new Set(['document', 'script', 'style', 'image', 'font']);
 
 const resolveAssetUrl = (relativePath) => new URL(relativePath, self.registration.scope).toString();
@@ -82,8 +82,8 @@ self.addEventListener('push', (event) => {
 
   const options = {
     body: data.body || 'Nova notificacao do Faltai',
-    icon: resolveAssetUrl('../icon-192.png'),
-    badge: resolveAssetUrl('../icon-192.png'),
+    icon: resolveAssetUrl('../icon-192-v2.png'),
+    badge: resolveAssetUrl('../icon-192-v2.png'),
     vibrate: [200, 100, 200],
     requireInteraction: true,
     tag: data.tag || 'faltai-notification',

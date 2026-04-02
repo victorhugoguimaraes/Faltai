@@ -44,7 +44,7 @@ export const requestNotificationPermission = async () => {
 
 export const sendLocalNotification = (title, options = {}) => {
   if (Notification.permission === 'granted') {
-    const iconPath = getPublicAssetPath('/icon-192.png');
+    const iconPath = getPublicAssetPath('/icon-192-v2.png');
     new Notification(title, {
       body: options.body || 'Nova notificacao do Faltai',
       icon: iconPath,
