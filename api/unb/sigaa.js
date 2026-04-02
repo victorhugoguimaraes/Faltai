@@ -218,7 +218,8 @@ function parseClassRows(html) {
 }
 
 function rankDisciplineMatch(discipline, tokens) {
-  const disciplineHaystack = normalizeForSearch(`${discipline.code} ${discipline.name}`);
+  const disciplineHaystack =
+    discipline._disciplineSearch || normalizeForSearch(`${discipline.code} ${discipline.name}`);
 
   if (!tokens.every((token) => disciplineHaystack.includes(token))) {
     return null;
@@ -246,17 +247,19 @@ function rankDisciplineMatch(discipline, tokens) {
 }
 
 function rankClassMatch(discipline, turma, tokens) {
-  const classHaystack = normalizeForSearch(
-    [
-      discipline.code,
-      discipline.name,
-      turma.classCode,
-      turma.teachers.join(' '),
-      turma.classroom,
-      turma.scheduleCode,
-      turma.scheduleText.join(' ')
-    ].join(' ')
-  );
+  const classHaystack =
+    turma._classSearch ||
+    normalizeForSearch(
+      [
+        discipline.code,
+        discipline.name,
+        turma.classCode,
+        turma.teachers.join(' '),
+        turma.classroom,
+        turma.scheduleCode,
+        turma.scheduleText.join(' ')
+      ].join(' ')
+    );
 
   if (!tokens.every((token) => classHaystack.includes(token))) {
     return null;
@@ -271,11 +274,11 @@ function rankClassMatch(discipline, turma, tokens) {
       return score + 90;
     }
 
-    if (normalizeForSearch(turma.teachers.join(' ')).includes(token)) {
+    if ((turma._teacherSearch || normalizeForSearch(turma.teachers.join(' '))).includes(token)) {
       return score + 35;
     }
 
-    if (normalizeForSearch(turma.classroom).includes(token)) {
+    if ((turma._classroomSearch || normalizeForSearch(turma.classroom)).includes(token)) {
       return score + 25;
     }
 
@@ -354,6 +357,7 @@ async function searchTurmas({ department, year, period }) {
 module.exports = {
   filterDisciplinesByQuery,
   getInitialForm,
+  normalizeForSearch,
   parseClassRows,
   parseDepartments,
   searchTurmas

@@ -1,8 +1,10 @@
 const fs = require('fs');
+const { promises: fsAsync } = fs;
 const path = require('path');
 const {
   filterDisciplinesByQuery,
   getInitialForm,
+  normalizeForSearch,
   parseDepartments,
   searchTurmas
 } = require('./sigaa');
@@ -12,6 +14,102 @@ const REFRESH_INTERVAL_MS = 7 * 24 * 60 * 60 * 1000;
 
 function ensureSnapshotDir() {
   fs.mkdirSync(SNAPSHOT_DIR, { recursive: true });
+}
+
+function buildDepartmentStats(disciplinesByDepartment = {}, totalDepartments = 0) {
+  const values = Object.values(disciplinesByDepartment);
+  const activeDepartments = values.filter((disciplines) => disciplines.length > 0).length;
+  const totalDisciplines = values.reduce((sum, disciplines) => sum + disciplines.length, 0);
+  const totalClasses = values.reduce(
+    (sum, disciplines) =>
+      sum +
+      disciplines.reduce((innerSum, discipline) => innerSum + (discipline.classes?.length || 0), 0),
+    0
+  );
+
+  return {
+    totalDepartments,
+    activeDepartments,
+    totalDisciplines,
+    totalClasses
+  };
+}
+
+function compareClasses(left, right) {
+  return String(left.classCode || '').localeCompare(String(right.classCode || ''));
+}
+
+function compareDisciplines(left, right) {
+  return `${left.code || ''} ${left.name || ''}`.localeCompare(`${right.code || ''} ${right.name || ''}`);
+}
+
+function prepareClass(discipline, turma) {
+  const teacherText = turma.teachers.join(' ');
+  const classroomText = turma.classroom || '';
+
+  return {
+    ...turma,
+    _teacherSearch: normalizeForSearch(teacherText),
+    _classroomSearch: normalizeForSearch(classroomText),
+    _classSearch: normalizeForSearch(
+      [
+        discipline.code,
+        discipline.name,
+        turma.classCode,
+        teacherText,
+        classroomText,
+        turma.scheduleCode,
+        turma.scheduleText.join(' ')
+      ].join(' ')
+    )
+  };
+}
+
+function prepareDiscipline(discipline) {
+  const classes = [...(discipline.classes || [])].sort(compareClasses);
+  const preparedDiscipline = {
+    ...discipline,
+    classes,
+    _disciplineSearch: normalizeForSearch(`${discipline.code} ${discipline.name}`),
+    _sortKey: `${discipline.code || ''} ${discipline.name || ''}`
+  };
+
+  preparedDiscipline.classes = classes.map((turma) => prepareClass(preparedDiscipline, turma));
+  return preparedDiscipline;
+}
+
+function prepareSnapshot(snapshot) {
+  const disciplinesByDepartment = Object.fromEntries(
+    Object.entries(snapshot.disciplinesByDepartment || {}).map(([departmentId, disciplines]) => [
+      departmentId,
+      [...disciplines].sort(compareDisciplines).map(prepareDiscipline)
+    ])
+  );
+
+  return {
+    ...snapshot,
+    disciplinesByDepartment,
+    stats:
+      snapshot.stats ||
+      buildDepartmentStats(disciplinesByDepartment, snapshot.departments?.length || 0)
+  };
+}
+
+function stripPreparedFields(snapshot) {
+  return {
+    ...snapshot,
+    disciplinesByDepartment: Object.fromEntries(
+      Object.entries(snapshot.disciplinesByDepartment || {}).map(([departmentId, disciplines]) => [
+        departmentId,
+        disciplines.map(({ _disciplineSearch, _sortKey, classes = [], ...discipline }) => ({
+          ...discipline,
+          classes: classes.map(
+            ({ _classSearch, _classroomSearch, _teacherSearch, ...turma }) => turma
+          )
+        }))
+      ])
+    )
+  };
 }
 
 function getSemesterKey(year, period) {
@@ -41,40 +139,21 @@ function loadSnapshot(year, period) {
     return null;
   }
 
-  return JSON.parse(fs.readFileSync(snapshotPath, 'utf8'));
+  return prepareSnapshot(JSON.parse(fs.readFileSync(snapshotPath, 'utf8')));
 }
 
-function saveSnapshot(snapshot) {
+async function saveSnapshot(snapshot) {
   const snapshotPath = getSnapshotPath(snapshot.semester.year, snapshot.semester.period);
-  fs.writeFileSync(snapshotPath, JSON.stringify(snapshot, null, 2));
+  await fsAsync.writeFile(snapshotPath, JSON.stringify(stripPreparedFields(snapshot), null, 2), 'utf8');
   return snapshotPath;
 }
 
 function getSnapshotStats(snapshot) {
-  const departmentIds = Object.keys(snapshot.disciplinesByDepartment || {});
-  const activeDepartments = departmentIds.filter(
-    (departmentId) => (snapshot.disciplinesByDepartment?.[departmentId] || []).length > 0
-  );
-  const totalDisciplines = departmentIds.reduce(
-    (sum, departmentId) => sum + (snapshot.disciplinesByDepartment?.[departmentId]?.length || 0),
-    0
-  );
-  const totalClasses = departmentIds.reduce(
-    (sum, departmentId) =>
-      sum +
-      (snapshot.disciplinesByDepartment?.[departmentId] || []).reduce(
-        (innerSum, discipline) => innerSum + (discipline.classes?.length || 0),
-        0
-      ),
-    0
-  );
+  if (snapshot.stats) {
+    return snapshot.stats;
+  }
 
-  return {
-    totalDepartments: snapshot.departments?.length || 0,
-    activeDepartments: activeDepartments.length,
-    totalDisciplines,
-    totalClasses
-  };
+  return buildDepartmentStats(snapshot.disciplinesByDepartment, snapshot.departments?.length || 0);
 }
 
 async function refreshSnapshot({
@@ -128,7 +207,7 @@ async function refreshSnapshot({
     });
   }
 
-  const snapshot = {
+  const snapshot = prepareSnapshot({
     semester: {
       year: normalizedYear,
       period: normalizedPeriod
@@ -141,9 +220,9 @@ async function refreshSnapshot({
       failures,
       source: 'sigaa'
     }
-  };
+  });
 
-  saveSnapshot(snapshot);
+  await saveSnapshot(snapshot);
   return snapshot;
 }
 
