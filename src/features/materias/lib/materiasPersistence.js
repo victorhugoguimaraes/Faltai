@@ -187,6 +187,34 @@ export const loadRemoteMaterias = async (userId) => {
   return [];
 };
 
+export const subscribeToRemoteMaterias = async (userId, { onData, onError }) => {
+  const db = await getFirebaseDb();
+
+  if (!db || !userId) {
+    onData?.([]);
+    return () => {};
+  }
+
+  const firestoreModule = await import('firebase/firestore');
+  const subjectsCollection = firestoreModule.collection(db, 'usuarios', userId, SUBJECTS_COLLECTION);
+
+  return firestoreModule.onSnapshot(
+    subjectsCollection,
+    (snapshot) => {
+      const materias = normalizeMateriaList(
+        snapshot.docs.map((docSnapshot) => ({
+          id: docSnapshot.id,
+          ...docSnapshot.data()
+        }))
+      );
+      onData?.(materias);
+    },
+    (error) => {
+      onError?.(error);
+    }
+  );
+};
+
 export const flushMateriasSync = async (userId, scope) => {
   const queue = loadQueueState(scope);
   const upserts = Object.values(queue.upserts || {});

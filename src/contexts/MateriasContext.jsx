@@ -12,13 +12,13 @@ import {
   getMateriasStorageScope,
   getPendingSyncState,
   loadLocalMaterias,
-  loadRemoteMaterias,
   markMateriasWithPendingState,
   mergeRemoteMateriasWithPending,
   normalizeMateriaRecord,
   queueMateriaDelete,
   queueMateriaUpsert,
-  saveLocalMaterias
+  saveLocalMaterias,
+  subscribeToRemoteMaterias
 } from '../features/materias/lib/materiasPersistence';
 
 const MateriasContext = createContext();
@@ -37,6 +37,7 @@ export const MateriasProvider = ({ children }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const syncTimeoutRef = useRef(null);
+  const remoteUnsubscribeRef = useRef(() => {});
 
   const currentScope = getMateriasStorageScope(user);
 
@@ -63,25 +64,40 @@ export const MateriasProvider = ({ children }) => {
       } catch (syncError) {
         console.error('Erro ao sincronizar materias pendentes:', syncError);
       }
-    }, 900);
+    }, 250);
   };
 
   useEffect(() => {
     const localMaterias = loadLocalMaterias(currentScope);
 
-    const loadMaterias = async () => {
-      if (!user) {
-        setMaterias(localMaterias);
-        return;
-      }
+    remoteUnsubscribeRef.current?.();
+    remoteUnsubscribeRef.current = () => {};
 
-      setLoading(true);
-      setError(null);
+    if (!user) {
       setMaterias(localMaterias);
+      setLoading(false);
+      return () => {
+        if (syncTimeoutRef.current) {
+          clearTimeout(syncTimeoutRef.current);
+        }
+      };
+    }
 
-      try {
-        if (isOnline && user.uid) {
-          const remoteMaterias = await loadRemoteMaterias(user.uid);
+    setLoading(true);
+    setError(null);
+    setMaterias(localMaterias);
+
+    if (isOnline && user.uid) {
+      scheduleSync(currentScope);
+
+      let active = true;
+
+      subscribeToRemoteMaterias(user.uid, {
+        onData: (remoteMaterias) => {
+          if (!active) {
+            return;
+          }
+
           const mergedMaterias = mergeRemoteMateriasWithPending({
             remoteMaterias,
             localMaterias,
@@ -90,21 +106,33 @@ export const MateriasProvider = ({ children }) => {
 
           setMaterias(mergedMaterias);
           saveLocalMaterias(currentScope, mergedMaterias);
-          scheduleSync(currentScope);
-        } else {
-          setMaterias(localMaterias);
-        }
-      } catch (err) {
-        setError('Erro ao carregar materias');
-        console.error('Erro ao carregar materias:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
+          setLoading(false);
+        },
+        onError: (err) => {
+          if (!active) {
+            return;
+          }
 
-    loadMaterias();
+          setError('Erro ao carregar materias');
+          console.error('Erro ao carregar materias:', err);
+          setLoading(false);
+        }
+      }).then((unsubscribe) => {
+        if (!active) {
+          unsubscribe?.();
+          return;
+        }
+
+        remoteUnsubscribeRef.current = unsubscribe || (() => {});
+      });
+    } else {
+      setMaterias(localMaterias);
+      setLoading(false);
+    }
 
     return () => {
+      remoteUnsubscribeRef.current?.();
+      remoteUnsubscribeRef.current = () => {};
       if (syncTimeoutRef.current) {
         clearTimeout(syncTimeoutRef.current);
       }
