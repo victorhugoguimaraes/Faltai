@@ -30,7 +30,7 @@ function ResetPasswordModal({ setResetModalOpen }) {
       contentClassName="space-y-4 p-4 sm:p-6"
       mobileFullHeight
     >
-      <div className="rounded-[1.75rem] border border-white/80 bg-slate-50/90 p-4 shadow-soft">
+      <div className="app-panel-muted">
         <p className="text-xs font-semibold uppercase tracking-[0.24em] text-emerald-800">Recuperação</p>
         <p className="mt-2 text-sm leading-6 text-slate-600">
           Informe seu email para receber o link de redefinição e voltar para a conta.
@@ -51,7 +51,7 @@ function ResetPasswordModal({ setResetModalOpen }) {
         <div className="space-y-3">
           <label className="block text-sm font-medium text-slate-700">Email</label>
           <input
-            className="input-modern"
+            className="app-input"
             placeholder="voce@exemplo.com"
             value={resetEmail}
             onChange={(e) => setResetEmail(e.target.value)}
@@ -65,7 +65,7 @@ function ResetPasswordModal({ setResetModalOpen }) {
           </button>
           <button
             type="button"
-            className="text-sm font-semibold text-slate-500 transition-colors hover:text-slate-700"
+            className="app-text-button"
             onClick={() => setResetModalOpen(false)}
           >
             Cancelar

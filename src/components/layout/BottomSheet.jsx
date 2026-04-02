@@ -20,11 +20,11 @@ function BottomSheet({
   return (
     <div className="fixed inset-0 z-[10050] flex items-end justify-center bg-black/50 p-0 sm:items-center sm:p-4">
       <div
-        className={`flex w-full flex-col overflow-hidden bg-white shadow-2xl sm:max-w-4xl ${
+        className={`flex w-full flex-col overflow-hidden border border-white/70 bg-white/95 shadow-strong backdrop-blur-xl sm:max-w-4xl ${
           mobileFullHeight ? 'h-[92vh] sm:h-auto sm:max-h-[90vh]' : 'max-h-[90vh]'
         } rounded-t-3xl sm:rounded-3xl ${className}`}
       >
-        <div className="sticky top-0 z-10 border-b border-slate-100 bg-white">
+        <div className="sticky top-0 z-10 border-b border-slate-100 bg-white/96 backdrop-blur-xl">
           {showHandle && (
             <div className="flex justify-center pb-1 pt-2 sm:hidden">
               <div className="h-1.5 w-12 rounded-full bg-slate-300" />

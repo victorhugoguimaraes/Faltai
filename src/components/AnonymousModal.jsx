@@ -21,14 +21,14 @@ function AnonymousModal({ setAnonymousModalOpen }) {
       contentClassName="space-y-4 p-4 sm:p-6"
       mobileFullHeight
     >
-      <div className="rounded-[1.75rem] border border-amber-200 bg-amber-50/90 p-4 shadow-soft">
+      <div className="app-panel-muted border-amber-200 bg-amber-50/90">
         <p className="text-xs font-semibold uppercase tracking-[0.24em] text-amber-800">Modo local</p>
         <p className="mt-2 text-sm leading-6 text-amber-900">
           Você pode testar a interface e marcar faltas normalmente, mas os dados não ficam sincronizados online.
         </p>
       </div>
 
-      <div className="rounded-[1.75rem] border border-white/80 bg-slate-50/90 p-4 shadow-soft">
+      <div className="app-panel-muted">
         <div className="flex items-start gap-3">
           <FaExclamationTriangle className="mt-1 shrink-0 text-amber-600" />
           <p className="text-sm leading-6 text-slate-600">
@@ -43,7 +43,7 @@ function AnonymousModal({ setAnonymousModalOpen }) {
           Continuar sem conta
         </button>
         <button
-          className="text-sm font-semibold text-slate-500 transition-colors hover:text-slate-700"
+          className="app-text-button"
           onClick={() => setAnonymousModalOpen(false)}
         >
           Cancelar

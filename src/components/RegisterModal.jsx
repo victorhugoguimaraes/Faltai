@@ -43,7 +43,7 @@ function RegisterModal({ setRegisterModalOpen }) {
       contentClassName="space-y-4 p-4 sm:p-6"
       mobileFullHeight
     >
-      <div className="rounded-[1.75rem] border border-white/80 bg-slate-50/90 p-4 shadow-soft">
+      <div className="app-panel-muted">
         <p className="text-xs font-semibold uppercase tracking-[0.24em] text-emerald-800">Conta sincronizada</p>
         <p className="mt-2 text-sm leading-6 text-slate-600">
           Crie sua conta para salvar faltas, agenda e compromissos com sincronização entre dispositivos.
@@ -58,7 +58,7 @@ function RegisterModal({ setRegisterModalOpen }) {
         <div className="space-y-3">
           <label className="block text-sm font-medium text-slate-700">Nome</label>
           <input
-            className="input-modern"
+            className="app-input"
             placeholder="Seu nome"
             value={registerNome}
             onChange={(e) => setRegisterNome(e.target.value)}
@@ -68,7 +68,7 @@ function RegisterModal({ setRegisterModalOpen }) {
         <div className="space-y-3">
           <label className="block text-sm font-medium text-slate-700">Email</label>
           <input
-            className="input-modern"
+            className="app-input"
             placeholder="voce@exemplo.com"
             value={registerEmail}
             onChange={(e) => setRegisterEmail(e.target.value)}
@@ -78,7 +78,7 @@ function RegisterModal({ setRegisterModalOpen }) {
         <div className="space-y-3">
           <label className="block text-sm font-medium text-slate-700">Senha</label>
           <input
-            className="input-modern"
+            className="app-input"
             type="password"
             placeholder="Defina uma senha"
             value={registerSenha}
@@ -93,7 +93,7 @@ function RegisterModal({ setRegisterModalOpen }) {
           </button>
           <button
             type="button"
-            className="flex w-full items-center justify-center gap-2 rounded-2xl border border-sky-200 bg-white px-5 py-3.5 text-base font-semibold text-sky-700 shadow-soft transition-all duration-200 hover:-translate-y-0.5 hover:bg-sky-50"
+            className="app-button-secondary w-full py-3.5 text-base text-sky-700 border-sky-200 hover:bg-sky-50"
             onClick={handleGoogleRegister}
           >
             <FaGoogle />
@@ -101,7 +101,7 @@ function RegisterModal({ setRegisterModalOpen }) {
           </button>
           <button
             type="button"
-            className="text-sm font-semibold text-slate-500 transition-colors hover:text-slate-700"
+            className="app-text-button"
             onClick={() => setRegisterModalOpen(false)}
           >
             Cancelar

@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { FaPlus, FaTimes } from 'react-icons/fa';
+import { FaPlus } from 'react-icons/fa';
 import { useMaterias } from '../contexts/MateriasContext';
 import { useError } from '../contexts/ErrorContext';
 import { calculateMaxFaltas } from '../utils/validation';
+import BottomSheet from './layout/BottomSheet';
 
 const hourOptions = ['30', '45', '60', '75', '90', '120'];
 
@@ -90,163 +91,139 @@ function EditMateriaModal({ setEditModalOpen, editIndex }) {
   };
 
   return (
-    <div className="fixed inset-0 z-[10030] flex items-center justify-center bg-black/60 p-4">
-      <div className="w-full max-w-lg rounded-[2rem] border border-white/70 bg-white/95 p-5 shadow-strong backdrop-blur-xl sm:p-6">
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">Materia</p>
-            <h2 className="mt-2 font-display text-2xl font-bold text-slate-950">Editar materia</h2>
-          </div>
-          <button
-            onClick={() => setEditModalOpen(false)}
-            className="rounded-2xl border border-slate-200 bg-white p-3 text-slate-500 hover:text-slate-800"
-            aria-label="Fechar"
-          >
-            <FaTimes />
-          </button>
+    <BottomSheet
+      isOpen
+      onClose={() => setEditModalOpen(false)}
+      title="Editar materia"
+      className="sm:max-w-lg"
+      contentClassName="space-y-4 p-4 sm:p-6"
+    >
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div>
+          <label className="mb-1.5 block text-sm font-medium text-slate-700">Nome da materia</label>
+          <input
+            type="text"
+            value={nome}
+            onChange={(event) => setNome(event.target.value)}
+            className="app-input"
+            required
+          />
         </div>
 
-        <form onSubmit={handleSubmit} className="mt-6 space-y-4">
+        <div className="grid gap-4 sm:grid-cols-2">
           <div>
-            <label className="mb-1.5 block text-sm font-medium text-slate-700">Nome da materia</label>
-            <input
-              type="text"
-              value={nome}
-              onChange={(event) => setNome(event.target.value)}
-              className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-800"
+            <label className="mb-1.5 block text-sm font-medium text-slate-700">Carga horaria</label>
+            <select
+              value={horas}
+              onChange={(event) => setHoras(event.target.value)}
+              className="app-input"
               required
-            />
-          </div>
-
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div>
-              <label className="mb-1.5 block text-sm font-medium text-slate-700">Carga horaria</label>
-              <select
-                value={horas}
-                onChange={(event) => setHoras(event.target.value)}
-                className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-800"
-                required
-              >
-                <option value="">Selecione</option>
-                {hasCustomHourOption ? <option value={currentHoursOption}>{currentHoursOption} horas</option> : null}
-                {hourOptions.map((option) => (
-                  <option key={option} value={option}>
-                    {option} horas
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="mb-1.5 block text-sm font-medium text-slate-700">Peso da falta</label>
-              <select
-                value={pesoFalta}
-                onChange={(event) => setPesoFalta(event.target.value)}
-                className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-800"
-              >
-                <option value="1">1 falta por vez</option>
-                <option value="2">2 faltas por vez</option>
-                <option value="4">4 faltas por vez</option>
-              </select>
-            </div>
-          </div>
-
-          <div className="rounded-[1.5rem] border border-slate-200 bg-slate-50 px-4 py-4">
-            <button
-              type="button"
-              onClick={() => setMostrarAvaliacoes(!mostrarAvaliacoes)}
-              className="flex items-center gap-2 text-sm font-semibold text-slate-700"
             >
-              <FaPlus className="text-xs" />
-              {mostrarAvaliacoes ? 'Ocultar avaliacoes' : 'Adicionar avaliacoes'}
-            </button>
+              <option value="">Selecione</option>
+              {hasCustomHourOption ? <option value={currentHoursOption}>{currentHoursOption} horas</option> : null}
+              {hourOptions.map((option) => (
+                <option key={option} value={option}>
+                  {option} horas
+                </option>
+              ))}
+            </select>
+          </div>
 
-            {mostrarAvaliacoes && (
-              <div className="mt-4 space-y-3">
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <input
-                    type="text"
-                    value={novaAvaliacao.tipo}
-                    onChange={(event) =>
-                      setNovaAvaliacao((current) => ({ ...current, tipo: event.target.value }))
-                    }
-                    className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-800"
-                    placeholder="Tipo da avaliacao"
-                  />
-                  <input
-                    type="date"
-                    value={novaAvaliacao.data}
-                    onChange={(event) =>
-                      setNovaAvaliacao((current) => ({ ...current, data: event.target.value }))
-                    }
-                    className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-800"
-                  />
-                </div>
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-slate-700">Peso da falta</label>
+            <select
+              value={pesoFalta}
+              onChange={(event) => setPesoFalta(event.target.value)}
+              className="app-input"
+            >
+              <option value="1">1 falta por vez</option>
+              <option value="2">2 faltas por vez</option>
+              <option value="4">4 faltas por vez</option>
+            </select>
+          </div>
+        </div>
 
-                <div className="grid gap-3 sm:grid-cols-[1fr_auto]">
-                  <input
-                    type="text"
-                    value={novaAvaliacao.descricao}
-                    onChange={(event) =>
-                      setNovaAvaliacao((current) => ({ ...current, descricao: event.target.value }))
-                    }
-                    className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-800"
-                    placeholder="Descricao"
-                  />
-                  <button
-                    type="button"
-                    onClick={adicionarAvaliacao}
-                    className="rounded-2xl bg-slate-950 px-4 py-3 text-sm font-semibold text-white"
-                  >
-                    Adicionar
-                  </button>
-                </div>
+        <div className="app-panel-muted">
+          <button
+            type="button"
+            onClick={() => setMostrarAvaliacoes(!mostrarAvaliacoes)}
+            className="flex items-center gap-2 text-sm font-semibold text-slate-700"
+          >
+            <FaPlus className="text-xs" />
+            {mostrarAvaliacoes ? 'Ocultar avaliacoes' : 'Adicionar avaliacoes'}
+          </button>
 
-                <div className="space-y-2">
-                  {avaliacoes.map((avaliacao) => (
-                    <div
-                      key={avaliacao.id}
-                      className="flex items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3"
-                    >
-                      <div className="min-w-0">
-                        <p className="text-sm font-semibold text-slate-900">{avaliacao.tipo}</p>
-                        <p className="mt-1 text-xs text-slate-500">
-                          {formatEvaluationDate(avaliacao.data)}
-                          {avaliacao.descricao ? ` - ${avaliacao.descricao}` : ''}
-                        </p>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => removerAvaliacao(avaliacao.id)}
-                        className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-rose-600"
-                      >
-                        Remover
-                      </button>
-                    </div>
-                  ))}
-                </div>
+          {mostrarAvaliacoes && (
+            <div className="mt-4 space-y-3">
+              <div className="grid gap-3 sm:grid-cols-2">
+                <input
+                  type="text"
+                  value={novaAvaliacao.tipo}
+                  onChange={(event) =>
+                    setNovaAvaliacao((current) => ({ ...current, tipo: event.target.value }))
+                  }
+                  className="app-input"
+                  placeholder="Tipo da avaliacao"
+                />
+                <input
+                  type="date"
+                  value={novaAvaliacao.data}
+                  onChange={(event) =>
+                    setNovaAvaliacao((current) => ({ ...current, data: event.target.value }))
+                  }
+                  className="app-input"
+                />
               </div>
-            )}
-          </div>
 
-          <div className="flex justify-end gap-3 pt-2">
-            <button
-              type="button"
-              onClick={() => setEditModalOpen(false)}
-              className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-600"
-            >
-              Cancelar
-            </button>
-            <button
-              type="submit"
-              className="rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white"
-            >
-              Salvar
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+              <div className="grid gap-3 sm:grid-cols-[1fr_auto]">
+                <input
+                  type="text"
+                  value={novaAvaliacao.descricao}
+                  onChange={(event) =>
+                    setNovaAvaliacao((current) => ({ ...current, descricao: event.target.value }))
+                  }
+                  className="app-input"
+                  placeholder="Descricao"
+                />
+                <button type="button" onClick={adicionarAvaliacao} className="app-button-primary">
+                  Adicionar
+                </button>
+              </div>
+
+              <div className="space-y-2">
+                {avaliacoes.map((avaliacao) => (
+                  <div key={avaliacao.id} className="app-panel flex items-center justify-between gap-3 !p-3">
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-slate-900">{avaliacao.tipo}</p>
+                      <p className="mt-1 text-xs text-slate-500">
+                        {formatEvaluationDate(avaliacao.data)}
+                        {avaliacao.descricao ? ` - ${avaliacao.descricao}` : ''}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => removerAvaliacao(avaliacao.id)}
+                      className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-rose-600"
+                    >
+                      Remover
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div className="flex justify-end gap-3 pt-2">
+          <button type="button" onClick={() => setEditModalOpen(false)} className="app-button-secondary">
+            Cancelar
+          </button>
+          <button type="submit" className="app-button-primary">
+            Salvar
+          </button>
+        </div>
+      </form>
+    </BottomSheet>
   );
 }
 

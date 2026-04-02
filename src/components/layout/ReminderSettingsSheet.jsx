@@ -5,7 +5,7 @@ import { reminderWeekdays } from '../../features/notifications/lib/notificationS
 
 function ToggleRow({ label, description, checked, onChange, statusText, helpText }) {
   return (
-    <div className="rounded-[1.4rem] border border-slate-200 bg-white px-4 py-4">
+    <div className="app-panel !rounded-[1.4rem] !border-slate-200 !bg-white !p-4">
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
           <p className="text-sm font-semibold text-slate-900">{label}</p>
@@ -140,7 +140,7 @@ function ReminderSettingsSheet({
         <button
           type="button"
           onClick={onEnableNotifications}
-          className="w-full rounded-[1.4rem] bg-slate-950 px-4 py-3 text-sm font-semibold text-white"
+          className="app-button-primary w-full !rounded-[1.4rem]"
         >
           Ativar notificacoes do sistema
         </button>
@@ -229,7 +229,7 @@ function ReminderSettingsSheet({
       />
 
       <div className="grid gap-3 sm:grid-cols-2">
-        <label className="rounded-[1.4rem] border border-slate-200 bg-white px-4 py-3">
+        <label className="app-panel !rounded-[1.4rem] !border-slate-200 !bg-white !px-4 !py-3">
           <span className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Dia do lembrete semanal</span>
           <select
             value={settings.weeklyReminderDay}
@@ -244,7 +244,7 @@ function ReminderSettingsSheet({
           </select>
         </label>
 
-        <label className="rounded-[1.4rem] border border-slate-200 bg-white px-4 py-3">
+        <label className="app-panel !rounded-[1.4rem] !border-slate-200 !bg-white !px-4 !py-3">
           <span className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Horario do lembrete semanal</span>
           <input
             type="time"
@@ -270,7 +270,7 @@ function ReminderSettingsSheet({
         }
       />
 
-      <div className="rounded-[1.4rem] border border-slate-200 bg-slate-50 px-4 py-4">
+      <div className="app-panel-muted !rounded-[1.4rem] !border-slate-200">
         <p className="text-sm font-semibold text-slate-900">Como testar</p>
         <div className="mt-2 space-y-2 text-sm leading-6 text-slate-600">
           <p>1. Ative as notificacoes do sistema.</p>
@@ -283,14 +283,14 @@ function ReminderSettingsSheet({
         <button
           type="button"
           onClick={onSendTest}
-          className="rounded-[1.4rem] border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700"
+          className="app-button-secondary !rounded-[1.4rem]"
         >
           Enviar teste
         </button>
         <button
           type="button"
           onClick={onSave}
-          className="rounded-[1.4rem] bg-slate-950 px-4 py-3 text-sm font-semibold text-white"
+          className="app-button-primary !rounded-[1.4rem]"
         >
           Salvar lembretes
         </button>

@@ -1,6 +1,8 @@
 import React from 'react';
+import { FaSignOutAlt } from 'react-icons/fa';
 import { useAuth } from '../contexts/AuthContext';
 import { useError } from '../contexts/ErrorContext';
+import BottomSheet from './layout/BottomSheet';
 
 function LogoutConfirmationModal({ setLogoutModalOpen }) {
   const { logout } = useAuth();
@@ -12,33 +14,34 @@ function LogoutConfirmationModal({ setLogoutModalOpen }) {
       addSuccess('Logout realizado com sucesso!');
       setLogoutModalOpen(false);
     } catch (error) {
-      addError('Erro ao fazer logout: ' + error.message);
+      addError(`Erro ao fazer logout: ${error.message}`);
     }
   };
 
   return (
-    <div className="modal-overlay">
-      <div className="modal-content">
-        <h2 className="text-xl font-bold mb-4 text-danger-700">Confirmar Saída</h2>
-        <p className="text-sm text-neutral-600 mb-6">
-          Deseja sair? Você será desconectado e retornará à tela inicial.
+    <BottomSheet
+      isOpen
+      onClose={() => setLogoutModalOpen(false)}
+      title="Confirmar saida"
+      icon={<FaSignOutAlt className="text-lg sm:text-xl" />}
+      className="sm:max-w-md"
+      contentClassName="space-y-4 p-4 sm:p-6"
+    >
+      <div className="app-panel-muted">
+        <p className="text-sm leading-6 text-slate-600">
+          Deseja sair? Você será desconectado e retornará para a tela inicial.
         </p>
-        <div className="flex justify-end gap-3">
-          <button
-            className="btn-secondary"
-            onClick={() => setLogoutModalOpen(false)}
-          >
-            Cancelar
-          </button>
-          <button
-            className="btn-danger"
-            onClick={handleLogout}
-          >
-            Sair
-          </button>
-        </div>
       </div>
-    </div>
+
+      <div className="flex justify-end gap-3">
+        <button className="app-button-secondary" onClick={() => setLogoutModalOpen(false)}>
+          Cancelar
+        </button>
+        <button className="app-button-danger" onClick={handleLogout}>
+          Sair
+        </button>
+      </div>
+    </BottomSheet>
   );
 }
 
