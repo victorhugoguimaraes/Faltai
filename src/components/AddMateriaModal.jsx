@@ -3,6 +3,7 @@ import Calendar from 'react-calendar';
 import 'react-calendar/dist/Calendar.css';
 import {
   FaBook,
+  FaCheckCircle,
   FaChevronLeft,
   FaClipboardCheck,
   FaPlus,
@@ -22,7 +23,7 @@ const availableTerms = [
 ];
 
 function AddMateriaModal({ setModalOpen }) {
-  const { adicionarMateria } = useMaterias();
+  const { adicionarMateria, materias } = useMaterias();
   const { addError, addSuccess } = useError();
 
   const [mode, setMode] = useState('unb');
@@ -104,6 +105,35 @@ function AddMateriaModal({ setModalOpen }) {
     return departments.find((department) => department.id === selectedDepartment)?.name || '';
   }, [departments, selectedDepartment]);
 
+  const normalizedExistingNames = useMemo(
+    () =>
+      new Set(
+        (materias || [])
+          .map((materia) => String(materia?.nome || '').trim().toLowerCase())
+          .filter(Boolean)
+      ),
+    [materias]
+  );
+
+  const importedTurmaKeys = useMemo(
+    () =>
+      new Set(
+        (materias || [])
+          .map((materia) => {
+            const code = materia?.turmaUnb?.code;
+            const classCode = materia?.turmaUnb?.classCode;
+            return code && classCode ? `${code}:${classCode}` : null;
+          })
+          .filter(Boolean)
+      ),
+    [materias]
+  );
+
+  const manualMateriaAlreadyExists = useMemo(
+    () => normalizedExistingNames.has(String(nome || '').trim().toLowerCase()),
+    [nome, normalizedExistingNames]
+  );
+
   const { selectedYear, selectedPeriod } = useMemo(() => {
     const [year = String(currentYear), period = '1'] = selectedTerm.split('-');
     return {
@@ -159,6 +189,11 @@ function AddMateriaModal({ setModalOpen }) {
 
     if (!nome || !horas) {
       addError('Nome e carga horaria sao obrigatorios');
+      return;
+    }
+
+    if (manualMateriaAlreadyExists) {
+      addError('Essa materia ja esta na sua lista.');
       return;
     }
 
@@ -318,6 +353,13 @@ function AddMateriaModal({ setModalOpen }) {
   }, [selectedDepartment, selectedDisciplineCode, selectedPeriod, selectedYear, addError]);
 
   const importUnbClass = async (discipline, turma) => {
+    const turmaKey = `${discipline.code}:${turma.classCode}`;
+
+    if (importedTurmaKeys.has(turmaKey)) {
+      addSuccess(`Turma ${turma.classCode} ja esta na sua lista.`);
+      return;
+    }
+
     try {
       const importedMateria = sanitizeMateria({
         nome: `${discipline.code} - ${discipline.name}`,
@@ -402,6 +444,12 @@ function AddMateriaModal({ setModalOpen }) {
                 placeholder="Ex: Calculo 1"
                 required
               />
+              {manualMateriaAlreadyExists ? (
+                <div className="mt-2 inline-flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
+                  <FaCheckCircle />
+                  Materia ja adicionada
+                </div>
+              ) : null}
             </div>
 
             <div>
@@ -554,7 +602,7 @@ function AddMateriaModal({ setModalOpen }) {
 
             <div className="grid gap-3 sm:grid-cols-2">
               <button type="submit" className="btn-primary w-full justify-center">
-                Adicionar e continuar
+                {manualMateriaAlreadyExists ? 'Ja adicionada' : 'Adicionar e continuar'}
               </button>
               <button
                 type="button"
@@ -671,6 +719,11 @@ function AddMateriaModal({ setModalOpen }) {
 
                   <div className="space-y-3">
                     {selectedDiscipline.classes.map((turma) => (
+                      (() => {
+                        const turmaKey = `${selectedDiscipline.code}:${turma.classCode}`;
+                        const turmaJaAdicionada = importedTurmaKeys.has(turmaKey);
+
+                        return (
                       <div
                         key={`${selectedDiscipline.code}-${turma.classCode}`}
                         className="rounded-2xl border border-slate-100 bg-white p-4 shadow-soft"
@@ -714,38 +767,68 @@ function AddMateriaModal({ setModalOpen }) {
                           <button
                             type="button"
                             onClick={() => importUnbClass(selectedDiscipline, turma)}
-                            className="rounded-xl bg-emerald-700 px-4 py-3 text-sm font-semibold text-white hover:bg-emerald-800"
+                            disabled={turmaJaAdicionada}
+                            className={`rounded-xl px-4 py-3 text-sm font-semibold ${
+                              turmaJaAdicionada
+                                ? 'cursor-not-allowed bg-emerald-50 text-emerald-700'
+                                : 'bg-emerald-700 text-white hover:bg-emerald-800'
+                            }`}
                           >
-                            Adicionar e continuar
+                            {turmaJaAdicionada ? (
+                              <span className="inline-flex items-center gap-2">
+                                <FaCheckCircle />
+                                Ja adicionada
+                              </span>
+                            ) : (
+                              'Adicionar e continuar'
+                            )}
                           </button>
                         </div>
                       </div>
+                        );
+                      })()
                     ))}
                   </div>
                 </div>
               ) : (
                 <>
-                  {disciplineResults.map((discipline) => (
-                    <div key={discipline.code} className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
-                      <div className="mb-3">
-                        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-emerald-800">
-                          {discipline.code}
-                        </p>
-                        <h3 className="mt-1 text-lg font-semibold text-slate-900">{discipline.name}</h3>
-                        <p className="mt-2 text-sm text-slate-600">
-                          {(discipline.classCount || 0)} turma{(discipline.classCount || 0) > 1 ? 's' : ''} encontrada
-                          {(discipline.classCount || 0) > 1 ? 's' : ''}
-                        </p>
+                  {disciplineResults.map((discipline) => {
+                    const allClassesAdded =
+                      discipline.classCount > 0 &&
+                      selectedDiscipline?.code !== discipline.code &&
+                      discipline.classCount ===
+                        Array.from(importedTurmaKeys).filter((key) => key.startsWith(`${discipline.code}:`)).length;
+
+                    return (
+                      <div key={discipline.code} className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
+                        <div className="mb-3">
+                          <div className="flex items-center justify-between gap-3">
+                            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-emerald-800">
+                              {discipline.code}
+                            </p>
+                            {allClassesAdded ? (
+                              <span className="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
+                                <FaCheckCircle />
+                                Adicionada
+                              </span>
+                            ) : null}
+                          </div>
+                          <h3 className="mt-1 text-lg font-semibold text-slate-900">{discipline.name}</h3>
+                          <p className="mt-2 text-sm text-slate-600">
+                            {(discipline.classCount || 0)} turma{(discipline.classCount || 0) > 1 ? 's' : ''} encontrada
+                            {(discipline.classCount || 0) > 1 ? 's' : ''}
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setSelectedDisciplineCode(discipline.code)}
+                          className="rounded-xl bg-slate-950 px-4 py-3 text-sm font-semibold text-white hover:bg-slate-800"
+                        >
+                          Ver turmas
+                        </button>
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => setSelectedDisciplineCode(discipline.code)}
-                        className="rounded-xl bg-slate-950 px-4 py-3 text-sm font-semibold text-white hover:bg-slate-800"
-                      >
-                        Ver turmas
-                      </button>
-                    </div>
-                  ))}
+                    );
+                  })}
 
                   {disciplineResults.length > 0 ? (
                     <button
