@@ -33,13 +33,13 @@ describe('authState helpers', () => {
     const state = resolveAuthState({
       firebaseUser: { uid: 'abc', email: 'aluno@example.com', displayName: 'Aluno' },
       isOnline: true,
-      userDocData: { nome: 'Aluno', materias: [] },
+      userDocData: { nome: 'Aluno' },
       offlineUser: null
     });
 
     expect(state.isOnline).toBe(true);
     expect(state.user.uid).toBe('abc');
-    expect(state.user.materias).toEqual([]);
+    expect(state.user.nome).toBe('Aluno');
   });
 
   it('limpa sessao persistida no logout', () => {

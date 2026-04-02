@@ -186,7 +186,7 @@ function MateriaList({
 
         return (
           <div
-            key={index}
+            key={materia.id || index}
             className="rounded-[1.6rem] border border-white/80 bg-white/88 p-4 shadow-soft backdrop-blur-xl transition-all duration-300 hover:-translate-y-1 hover:shadow-medium sm:rounded-[1.75rem] sm:p-6"
           >
             <div className="mb-4 flex items-start justify-between gap-3">

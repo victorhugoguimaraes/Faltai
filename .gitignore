@@ -25,6 +25,11 @@ yarn-debug.log*
 yarn-error.log*
 .env
 .codex
-/api/data
+/api/data/*
+!/api/data/snapshots/
+/api/data/snapshots/*
+!/api/data/snapshots/*.json
+/api/data/vapid-keys.json
+/api/data/push-subscriptions.json
 /experiments
 /tmp

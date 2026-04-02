@@ -2,6 +2,7 @@ export const storageKeys = {
   appNotifications: 'app_notifications',
   isOnline: 'isOnline',
   materias: 'materias',
+  materiasSyncQueue: 'materias_sync_queue',
   notificationSettings: 'notification_settings',
   offlineData: 'offlineData',
   offlineUser: 'offlineUser',

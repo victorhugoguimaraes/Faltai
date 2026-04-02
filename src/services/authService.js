@@ -67,7 +67,7 @@ export const registerUser = async (nome, email, senha) => {
     const userCredential = await authModule.createUserWithEmailAndPassword(auth, email, senha);
     
     // Cria documento do usuário no Firestore
-    const userData = { nome, materias: [] };
+    const userData = { nome };
     await firestoreModule.setDoc(firestoreModule.doc(db, 'usuarios', userCredential.user.uid), userData);
     
     const user = {
@@ -163,7 +163,6 @@ const processGoogleUser = async (userCredential, db) => {
     // Primeiro login - cria documento do usuário
     userData = {
       nome: userCredential.user.displayName || 'Usuário Google',
-      materias: [],
     };
     await firestoreModule.setDoc(docRef, userData);
   } else {

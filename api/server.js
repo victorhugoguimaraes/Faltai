@@ -380,27 +380,35 @@ app.get('/api/unb/departamentos', async (_req, res) => {
   }
 });
 
-app.get('/api/unb/snapshot/status', (req, res) => {
-  const semester = getRequestSemester(req);
-  const snapshot = getSnapshotFromMemory(semester);
+app.get('/api/unb/snapshot/status', async (req, res) => {
+  try {
+    const semester = getRequestSemester(req);
+    const snapshot = await getReadySnapshot(semester);
 
-  if (!snapshot) {
+    if (!snapshot) {
+      res.json({
+        ok: true,
+        available: false,
+        semester
+      });
+      return;
+    }
+
     res.json({
       ok: true,
-      available: false,
-      semester
+      available: true,
+      semester,
+      updatedAt: snapshot.updatedAt,
+      refresh: snapshot.refresh,
+      stats: getSnapshotStats(snapshot)
     });
-    return;
+  } catch (error) {
+    res.status(500).json({
+      ok: false,
+      message: 'Nao foi possivel consultar o status do snapshot.',
+      detail: error.message
+    });
   }
-
-  res.json({
-    ok: true,
-    available: true,
-    semester,
-    updatedAt: snapshot.updatedAt,
-    refresh: snapshot.refresh,
-    stats: getSnapshotStats(snapshot)
-  });
 });
 
 app.post('/api/unb/snapshot/refresh', async (req, res) => {
