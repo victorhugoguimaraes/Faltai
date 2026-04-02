@@ -111,7 +111,7 @@ function MateriaList({
               <h2 className="mt-2 font-display text-xl font-bold text-slate-950 sm:text-2xl">Sua semana montada</h2>
             </div>
             <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
-              {sortedTurmas.length} blocos
+              {sortedTurmas.length} aula{sortedTurmas.length > 1 ? 's' : ''}
             </span>
           </div>
 

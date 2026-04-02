@@ -225,7 +225,7 @@ function Dashboard({ onClose }) {
         <MetricCard
           icon={<FaCalendarDay />}
           eyebrow="Hoje"
-          title={overview.todayClassesCount === 0 ? 'Sem aulas na grade' : `${overview.todayClassesCount} bloco${overview.todayClassesCount > 1 ? 's' : ''} hoje`}
+          title={overview.todayClassesCount === 0 ? 'Sem aulas na grade' : `${overview.todayClassesCount} aula${overview.todayClassesCount > 1 ? 's' : ''} hoje`}
           text={
             overview.nextClass
               ? `Proxima aula: ${overview.nextClass.nome} em ${overview.nextClass.dayLabel}, ${overview.nextClass.inicio}.`
